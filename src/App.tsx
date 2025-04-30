@@ -1,26 +1,123 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React, { useEffect, useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { ThemeProvider } from './styles/ThemeProvider';
+import GlobalStyles from './styles/GlobalStyles';
+import Navbar from './components/common/Navbar';
+import Login from './components/auth/Login';
+import Register from './components/auth/Register';
+import Profile from './components/profile/Profile';
+import Search from './components/profile/Search';
+import Feed from './components/posts/Feed';
+import { supabase } from './utils/supabaseClient';
 
-function App() {
+// Protected route component
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        // Check if user is in localStorage
+        const storedUser = localStorage.getItem('user');
+        console.log('Protected route - User in localStorage:', !!storedUser);
+        
+        // Check Supabase session
+        const { data } = await supabase.auth.getSession();
+        console.log('Protected route - Supabase session:', !!data.session);
+        
+        if (data.session || storedUser) {
+          setIsAuthenticated(true);
+        } else {
+          console.log('No auth found, redirecting to login');
+          setIsAuthenticated(false);
+          navigate('/login');
+        }
+      } catch (error) {
+        console.error('Auth check error:', error);
+        setIsAuthenticated(false);
+        navigate('/login');
+      }
+    };
+    
+    checkAuth();
+  }, [navigate]);
+
+  // Show loading while checking auth
+  if (isAuthenticated === null) {
+    return <div>Loading...</div>;
+  }
+
+  return isAuthenticated ? <>{children}</> : null;
+};
+
+// Temporary Settings component
+const Settings: React.FC = () => {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div style={{ maxWidth: '600px', margin: '0 auto', padding: '20px' }}>
+      <h1>Settings</h1>
+      <p>This page is under construction. Settings functionality will be added soon.</p>
     </div>
   );
-}
+};
+
+const App: React.FC = () => {
+  // Check if user is logged in
+  const isLoggedIn = !!localStorage.getItem('user');
+
+  return (
+    <ThemeProvider>
+      <Router>
+        <GlobalStyles />
+        <Navbar />
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route 
+            path="/profile" 
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/profile/:userId" 
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/search" 
+            element={
+              <ProtectedRoute>
+                <Search />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/feed" 
+            element={
+              <ProtectedRoute>
+                <Feed />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/settings" 
+            element={
+              <ProtectedRoute>
+                <Settings />
+              </ProtectedRoute>
+            } 
+          />
+          <Route path="/" element={<Navigate to={isLoggedIn ? "/feed" : "/login"} replace />} />
+        </Routes>
+      </Router>
+    </ThemeProvider>
+  );
+};
 
 export default App;

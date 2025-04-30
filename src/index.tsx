@@ -1,6 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
+import 'react-draft-wysiwyg/dist/react-draft-wysiwyg.css';
+import './styles/rich-editor.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 
