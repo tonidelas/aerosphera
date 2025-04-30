@@ -1,0 +1,93 @@
+/* Custom styles for Quill editor to match vintage theme */
+.ql-snow .ql-toolbar button, 
+.ql-snow .ql-picker {
+  color: var(--primary);
+}
+
+.ql-snow .ql-toolbar button:hover,
+.ql-snow .ql-toolbar button.ql-active {
+  color: var(--accent);
+}
+
+.ql-snow .ql-toolbar button:hover .ql-fill,
+.ql-snow .ql-toolbar button.ql-active .ql-fill {
+  fill: var(--accent);
+}
+
+.ql-snow .ql-toolbar button:hover .ql-stroke,
+.ql-snow .ql-toolbar button.ql-active .ql-stroke {
+  stroke: var(--accent);
+}
+
+.ql-snow .ql-picker-options {
+  background-color: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--highlight);
+}
+
+.ql-snow .ql-picker.ql-expanded .ql-picker-label {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.ql-snow .ql-picker.ql-expanded .ql-picker-options {
+  margin-top: 5px;
+}
+
+.ql-snow .ql-tooltip {
+  background-color: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--highlight);
+  padding: 8px 12px;
+}
+
+.ql-snow .ql-tooltip input[type=text] {
+  border: 1px solid var(--highlight);
+  border-radius: 4px;
+  padding: 5px;
+  outline: none;
+}
+
+.ql-snow .ql-tooltip a.ql-action,
+.ql-snow .ql-tooltip a.ql-remove {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.ql-snow .ql-editor h1,
+.ql-snow .ql-editor h2,
+.ql-snow .ql-editor h3 {
+  font-family: 'Lucida Grande', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Animation for the editor */
+.ql-container.ql-snow {
+  transition: all 0.3s ease;
+}
+
+.ql-container.ql-snow:focus-within {
+  box-shadow: 0 0 10px rgba(122, 179, 255, 0.4);
+}
+
+/* Override font size to match vintage UI */
+.ql-snow .ql-editor {
+  font-size: 14px;
+  color: #333;
+}
+
+/* Custom button styles */
+.ql-snow .ql-toolbar button {
+  transition: all 0.2s ease;
+}
+
+.ql-snow .ql-toolbar button:hover {
+  transform: translateY(-1px);
+}
+
+.ql-snow .ql-toolbar button:active {
+  transform: translateY(1px);
+} 

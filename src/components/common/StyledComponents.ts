@@ -380,11 +380,11 @@ export const Grid = styled.div`
 `;
 
 interface CardProps {
-  gradient?: boolean;
+  $gradient?: boolean;
 }
 
 export const Card = styled.div<CardProps>`
-  background: ${props => props.gradient 
+  background: ${props => props.$gradient 
     ? 'linear-gradient(135deg, #F5F7FA, #E4EDF7)' 
     : 'white'};
   border-radius: 10px;

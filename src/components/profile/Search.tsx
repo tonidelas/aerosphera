@@ -98,6 +98,8 @@ const Search: React.FC = () => {
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   
+  const defaultAvatar = '/default-avatar.png';
+  
   // Fetch all users on component mount
   useEffect(() => {
     const fetchUsers = async () => {
@@ -188,7 +190,7 @@ const Search: React.FC = () => {
                       <UserCard key={user.id}>
                         <UserAvatar>
                           <img 
-                            src={user.avatar_url || `/default-avatar.png`} 
+                            src={user.avatar_url || defaultAvatar} 
                             alt={user.username} 
                           />
                         </UserAvatar>

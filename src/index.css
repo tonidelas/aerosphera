@@ -64,3 +64,53 @@ a, button, input, select, textarea {
 * {
   -webkit-tap-highlight-color: transparent;
 }
+
+/* Quill editor compatibility with vintage theme */
+.ql-snow .ql-toolbar {
+  font-family: 'Lucida Grande', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.ql-editor p {
+  margin-bottom: 0.5rem;
+}
+
+.ql-editor ul,
+.ql-editor ol {
+  padding-left: 1.5rem;
+}
+
+.ql-editor ul > li,
+.ql-editor ol > li {
+  margin-bottom: 0.25rem;
+}
+
+.ql-editor h1,
+.ql-editor h2,
+.ql-editor h3 {
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  font-weight: bold;
+}
+
+.ql-editor h1 {
+  font-size: 1.5rem;
+}
+
+.ql-editor h2 {
+  font-size: 1.25rem;
+}
+
+.ql-editor h3 {
+  font-size: 1.1rem;
+}
+
+/* Fix border radius and overflow */
+.ql-toolbar.ql-snow {
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+}
+
+.ql-container.ql-snow {
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+}

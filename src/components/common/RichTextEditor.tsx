@@ -1,91 +1,62 @@
-import React, { useState, useRef, useImperativeHandle, forwardRef, useEffect, Suspense, lazy } from 'react';
-import { EditorState, ContentState, convertToRaw } from 'draft-js';
-import { stateToHTML } from 'draft-js-export-html';
-// Import only the types, not the actual component
-import type { Editor as EditorType } from 'react-draft-wysiwyg';
-import 'react-draft-wysiwyg/dist/react-draft-wysiwyg.css';
-import '../../styles/rich-editor.css';
+import React, { useState, useRef, useImperativeHandle, forwardRef, useEffect } from 'react';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
+import '../../styles/quill-custom.css';
 import styled from 'styled-components';
 import { AquaButton } from './StyledComponents';
-
-// Lazy load the Editor component to fix setState on unmounted component warnings
-const Editor = lazy(() => import('react-draft-wysiwyg').then(module => ({ 
-  default: module.Editor 
-})));
 
 const EditorContainer = styled.div`
   font-family: 'Lucida Grande', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background-color: rgba(255, 255, 255, 0.7);
-  border: 1px solid var(--highlight);
   border-radius: 8px;
   color: var(--text);
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
   position: relative;
   backdrop-filter: blur(5px);
+  margin-bottom: 15px;
   
-  .rdw-editor-main {
-    padding: 10px;
-    min-height: 150px;
-    line-height: 1.4;
+  .quill {
     background: transparent;
+    border-radius: 8px;
+    overflow: hidden;
   }
   
-  .rdw-editor-toolbar {
-    border-bottom: 1px solid rgba(200, 200, 200, 0.5);
-    background: linear-gradient(to bottom, #F0F7FF, #E0ECF9);
+  .ql-toolbar {
     border-top-left-radius: 8px;
     border-top-right-radius: 8px;
-    margin-bottom: 0;
-    padding: 5px;
-    display: flex;
-    flex-wrap: wrap;
+    background: linear-gradient(to bottom, #F0F7FF, #E0ECF9);
+    border: 1px solid var(--highlight);
+    border-bottom: 1px solid rgba(200, 200, 200, 0.5);
+  }
+  
+  .ql-container {
+    font-family: 'Lucida Grande', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: rgba(255, 255, 255, 0.7);
+    min-height: 150px;
+    border: 1px solid var(--highlight);
+    border-top: none;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+  }
+  
+  .ql-editor {
+    min-height: 150px;
+    line-height: 1.4;
     
-    .rdw-option-wrapper {
-      background: linear-gradient(to bottom, #FFFFFF, #F0F0F0);
-      border: 1px solid #CCCCCC;
-      border-radius: 4px;
-      
-      &:hover {
-        box-shadow: 0 1px 3px var(--shadow);
-        background: linear-gradient(to bottom, #F0F0F0, #FFFFFF);
-      }
-      
-      &.rdw-option-active {
-        background: linear-gradient(to bottom, #D8E8FF, #B8D8FF);
-        border-color: #90C8FF;
-        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
-      }
+    &::placeholder {
+      color: rgba(0, 0, 0, 0.4);
     }
-    
-    .rdw-dropdown-wrapper {
-      background: linear-gradient(to bottom, #FFFFFF, #F0F0F0);
-      border: 1px solid #CCCCCC;
-      border-radius: 4px;
-      
-      &:hover {
-        box-shadow: 0 1px 3px var(--shadow);
-      }
-      
-      .rdw-dropdown-optionwrapper {
-        background: rgba(255, 255, 255, 0.95);
-        border: 1px solid #CCCCCC;
-        border-radius: 4px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-        backdrop-filter: blur(5px);
-      }
-      
-      .rdw-dropdownoption-active {
-        background: var(--accent);
-        color: white;
-      }
-    }
+  }
+  
+  .ql-editor.ql-blank::before {
+    font-style: normal;
+    color: rgba(0, 0, 0, 0.4);
   }
 `;
 
 const ImageUploadContainer = styled.div`
-  margin-top: 15px;
-  border-top: 1px solid rgba(200, 200, 200, 0.5);
-  padding-top: 15px;
+  margin-top: 5px;
+  padding-top: 5px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -131,6 +102,36 @@ const RemoveButton = styled(AquaButton)`
   }
 `;
 
+const EditorLoading = styled.div`
+  min-height: 200px;
+  border: 1px solid var(--highlight);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(255, 255, 255, 0.7);
+  color: var(--primary);
+  font-size: 16px;
+  position: relative;
+  overflow: hidden;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 50%;
+    height: 2px;
+    background: linear-gradient(to right, transparent, var(--accent), transparent);
+    animation: loading 1.5s infinite;
+  }
+  
+  @keyframes loading {
+    0% { left: -100%; }
+    100% { left: 100%; }
+  }
+`;
+
 interface RichTextEditorProps {
   value?: string;
   placeholder?: string;
@@ -140,42 +141,46 @@ interface RichTextEditorProps {
 export interface RichTextEditorHandle {
   getContent: () => { html: string; raw: any };
   getImage: () => string | null;
+  reset: () => void;
 }
 
-// Loading placeholder component for the editor
-const EditorLoading = () => (
-  <div style={{ 
-    minHeight: '200px', 
-    border: '1px solid #ccc', 
-    borderRadius: '8px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.7)'
-  }}>
-    Loading editor...
-  </div>
-);
+// Quill modules and formats configuration
+const modules = {
+  toolbar: [
+    [{ 'header': [1, 2, 3, false] }],
+    ['bold', 'italic', 'underline', 'strike'],
+    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+    [{ 'color': [] }, { 'background': [] }],
+    ['link'],
+    ['clean']
+  ],
+};
+
+const formats = [
+  'header',
+  'bold', 'italic', 'underline', 'strike',
+  'list', 'bullet',
+  'color', 'background',
+  'link'
+];
 
 const RichTextEditor = forwardRef<RichTextEditorHandle, Omit<RichTextEditorProps, 'onChange'>>(
   ({ value, placeholder, onImageChange }, ref) => {
-    // Use state to track if component is mounted to prevent setState on unmounted component
-    const [isMounted, setIsMounted] = useState(false);
-    const [editorState, setEditorState] = useState(() => EditorState.createEmpty());
+    const [content, setContent] = useState(value || '');
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
-    const [editorReady, setEditorReady] = useState(false);
+    const [isMounted, setIsMounted] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
     const fileInputRef = useRef<HTMLInputElement>(null);
     
-    // Set mounted state when component mounts and set a delay for editor loading
     useEffect(() => {
       setIsMounted(true);
       
-      // Delay the editor initialization to prevent warnings
+      // Simulate loading to ensure editor loads properly
       const timer = setTimeout(() => {
         if (isMounted) {
-          setEditorReady(true);
+          setIsLoading(false);
         }
-      }, 100);
+      }, 300);
       
       return () => {
         clearTimeout(timer);
@@ -185,16 +190,23 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, Omit<RichTextEditorProps
 
     useImperativeHandle(ref, () => ({
       getContent: () => {
-        const rawContent = convertToRaw(editorState.getCurrentContent());
-        const html = stateToHTML(editorState.getCurrentContent());
-        return { html, raw: rawContent };
+        return { 
+          html: content, 
+          raw: content 
+        };
       },
       getImage: () => selectedImage,
-    }), [editorState, selectedImage]);
+      reset: () => {
+        if (isMounted) {
+          setContent('');
+          setSelectedImage(null);
+        }
+      }
+    }), [content, selectedImage, isMounted]);
 
-    const handleEditorChange = (state: EditorState) => {
+    const handleChange = (value: string) => {
       if (isMounted) {
-        setEditorState(state);
+        setContent(value);
       }
     };
 
@@ -218,93 +230,53 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, Omit<RichTextEditorProps
       }
     };
 
-    const uploadImageCallback = (file: File): Promise<{ data: { link: string } }> => {
-      return new Promise((resolve, reject) => {
-        if (!isMounted) {
-          reject(new Error('Component not mounted'));
-          return;
-        }
-        
-        const reader = new FileReader();
-        reader.onload = () => {
-          if (isMounted) {
-            resolve({ data: { link: reader.result as string } });
-          } else {
-            reject(new Error('Component not mounted'));
-          }
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-    };
-
-    // If the component isn't mounted yet, return a loading state
-    if (!isMounted) {
-      return <EditorLoading />;
-    }
-
     return (
       <>
-        <EditorContainer>
-          {editorReady ? (
-            <Suspense fallback={<EditorLoading />}>
-              <Editor
-                editorState={editorState}
-                onEditorStateChange={handleEditorChange}
-                wrapperClassName="aqua-editor-wrapper"
-                editorClassName="aqua-editor"
-                toolbarClassName="aqua-editor-toolbar"
-                placeholder={placeholder || "What's on your mind?"}
-                toolbar={{
-                  options: ['inline', 'blockType', 'fontSize', 'fontFamily', 'list', 'textAlign', 'colorPicker', 'link', 'image', 'emoji', 'history'],
-                  inline: {
-                    options: ['bold', 'italic', 'underline', 'strikethrough'],
-                  },
-                  blockType: {
-                    options: ['Normal', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'Blockquote'],
-                  },
-                  list: {
-                    options: ['unordered', 'ordered'],
-                  },
-                  image: {
-                    uploadCallback: uploadImageCallback,
-                    alt: { present: true, mandatory: false },
-                    previewImage: true,
-                  },
-                }}
-              />
-            </Suspense>
-          ) : (
-            <EditorLoading />
-          )}
-        </EditorContainer>
+        {isLoading ? (
+          <EditorLoading>
+            Preparing your post-it editor...
+          </EditorLoading>
+        ) : (
+          <EditorContainer>
+            <ReactQuill 
+              theme="snow"
+              value={content}
+              onChange={handleChange}
+              modules={modules}
+              formats={formats}
+              placeholder={placeholder || "What's on your mind?"}
+            />
+          </EditorContainer>
+        )}
         
-        <ImageUploadContainer>
-          <UploadButton onClick={handleOpenFileDialog}>
-            Upload Photo
-          </UploadButton>
-          <UploadLabel>or drag and drop images into the editor</UploadLabel>
-          <FileInput 
-            type="file" 
-            ref={fileInputRef} 
-            onChange={handleImageUpload}
-            accept="image/*"
-          />
-          
-          {selectedImage && (
-            <ImagePreview>
-              <img src={selectedImage} alt="Preview" />
-              <RemoveButton onClick={() => { 
-                if (isMounted) {
-                  setSelectedImage(null); 
-                  if (onImageChange) onImageChange(null);
-                }
-              }}>
-                Remove Image
-              </RemoveButton>
-            </ImagePreview>
-          )}
-        </ImageUploadContainer>
+        {!isLoading && (
+          <ImageUploadContainer>
+            <UploadButton onClick={handleOpenFileDialog}>
+              Upload Photo
+            </UploadButton>
+            <UploadLabel>Add a photo to your post-it note</UploadLabel>
+            <FileInput 
+              type="file" 
+              ref={fileInputRef} 
+              onChange={handleImageUpload}
+              accept="image/*"
+            />
+            
+            {selectedImage && (
+              <ImagePreview>
+                <img src={selectedImage} alt="Preview" />
+                <RemoveButton onClick={() => { 
+                  if (isMounted) {
+                    setSelectedImage(null); 
+                    if (onImageChange) onImageChange(null);
+                  }
+                }}>
+                  Remove Image
+                </RemoveButton>
+              </ImagePreview>
+            )}
+          </ImageUploadContainer>
+        )}
       </>
     );
   }

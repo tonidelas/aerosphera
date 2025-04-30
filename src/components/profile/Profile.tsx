@@ -22,9 +22,10 @@ import {
   TabsHeader,
   TabContainer,
   TabContent,
-  Divider
+  Divider,
+  GlassInput
 } from '../common/StyledComponents';
-import RichTextEditor, { RichTextEditorHandle } from '../common/RichTextEditor';
+import SimpleEditor, { SimpleEditorHandle } from '../common/SimpleEditor';
 
 const ProfileActions = styled.div`
   display: flex;
@@ -34,6 +35,21 @@ const ProfileActions = styled.div`
 
 const PhotoActions = styled(ProfileActions)`
   margin-top: 15px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  
+  ${AquaButton} {
+    flex: 1;
+    min-width: 100px;
+    height: 36px;
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+  }
 `;
 
 const BioTextarea = styled.textarea`
@@ -77,6 +93,25 @@ const EditIcon = styled.span`
   ${BioText}:hover & {
     opacity: 1;
   }
+`;
+
+const UsernameWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  
+  h2 {
+    margin: 0;
+  }
+`;
+
+const UsernameInput = styled(GlassInput)`
+  font-size: 1.5em;
+  font-weight: bold;
+  width: auto;
+  min-width: 150px;
+  margin-right: 5px;
 `;
 
 const ProfilePhoto = styled.img`
@@ -144,11 +179,11 @@ const BackgroundOptions = styled.div`
   gap: 8px;
 `;
 
-const BackgroundOption = styled.div<{ bg: string; $selected: boolean }>`
+const BackgroundOption = styled.div<{ $bg: string; $selected: boolean }>`
   width: 30px;
   height: 30px;
   border-radius: 5px;
-  background: ${props => props.bg};
+  background: ${props => props.$bg};
   cursor: pointer;
   border: ${props => props.$selected ? '2px solid var(--accent)' : '1px solid var(--highlight)'};
   box-shadow: ${props => props.$selected ? '0 0 5px var(--accent)' : 'none'};
@@ -196,20 +231,70 @@ const DeleteButton = styled.span`
 
 const PostCard = styled(Card)`
   position: relative;
+  transform: rotate(${props => Math.random() * 6 - 3}deg);
+  transition: all 0.3s ease;
+  box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.15);
+  padding: 20px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  animation: fadeIn 0.5s ease-in-out;
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px) rotate(${props => Math.random() * 6 - 3}deg); }
+    to { opacity: 1; transform: translateY(0) rotate(${props => Math.random() * 6 - 3}deg); }
+  }
+  
+  &:hover {
+    transform: rotate(0deg) scale(1.05);
+    box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.2);
+    z-index: 10;
+  }
   
   &:hover ${DeleteButton} {
     opacity: 1;
   }
+  
+  &:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 30%;
+    right: 30%;
+    height: 15px;
+    background-color: rgba(0,0,0,0.1);
+    border-radius: 0 0 5px 5px;
+  }
+  
+  /* Add pushpin effect */
+  &:after {
+    content: '';
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 12px;
+    height: 12px;
+    background: #FF5F57;
+    border-radius: 50%;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+  }
 `;
 
-const EmptyState = styled.div`
+const EmptyPostsMessage = styled.div`
   text-align: center;
-  padding: 40px 0;
-  color: #666;
+  padding: 40px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 10px;
+  box-shadow: 0 2px 10px var(--shadow);
+  margin-top: 20px;
   
   h3 {
-    margin-bottom: 10px;
     color: var(--primary);
+    margin-bottom: 10px;
+  }
+  
+  p {
+    color: #666;
   }
 `;
 
@@ -219,13 +304,17 @@ const Profile: React.FC = () => {
   const [selectedBackground, setSelectedBackground] = useState(CARD_BACKGROUNDS[0]);
   const [activeTab, setActiveTab] = useState('posts');
   const [isEditingBio, setIsEditingBio] = useState(false);
+  const [isEditingUsername, setIsEditingUsername] = useState(false);
   const [newBio, setNewBio] = useState('');
+  const [newUsername, setNewUsername] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isCurrentUser, setIsCurrentUser] = useState(true); // Whether viewing own profile
-  const editorRef = useRef<RichTextEditorHandle>(null);
+  const editorRef = useRef<SimpleEditorHandle>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const { userId } = useParams<{ userId?: string }>();
+
+  const defaultAvatar = '/default-avatar.png';
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -286,6 +375,7 @@ const Profile: React.FC = () => {
             console.log('New profile created:', newProfile);
             setUser(newProfile);
             setNewBio(newProfile?.bio || '');
+            setNewUsername(newProfile?.username || '');
             return;
           } else if (profileError.code === 'PGRST116') {
             // If viewing someone else's profile and it doesn't exist
@@ -298,6 +388,7 @@ const Profile: React.FC = () => {
 
         setUser(profileData);
         setNewBio(profileData?.bio || '');
+        setNewUsername(profileData?.username || '');
 
         // Fetch user posts
         const { data: postsData, error: postsError } = await supabase
@@ -308,7 +399,13 @@ const Profile: React.FC = () => {
 
         if (postsError) throw postsError;
 
-        setPosts(postsData || []);
+        // Add backgrounds to posts that don't have them
+        const postsWithBackgrounds = (postsData || []).map((post, index) => ({
+          ...post,
+          background: post.background || CARD_BACKGROUNDS[index % CARD_BACKGROUNDS.length]
+        }));
+
+        setPosts(postsWithBackgrounds);
       } catch (error) {
         console.error('Error fetching user data:', error);
       } finally {
@@ -347,6 +444,24 @@ const Profile: React.FC = () => {
     }
   };
 
+  const handleSaveUsername = async () => {
+    if (!user || !newUsername.trim()) return;
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ username: newUsername })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      setUser(prev => prev ? { ...prev, username: newUsername } : null);
+      setIsEditingUsername(false);
+    } catch (error) {
+      console.error('Error saving username:', error);
+    }
+  };
+
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!user || !e.target.files?.length) return;
 
@@ -367,32 +482,58 @@ const Profile: React.FC = () => {
     }
   };
 
-  const handleAddPost = async () => {
-    if (!user || !editorRef.current) return;
+  const handleRemovePhoto = async () => {
+    if (!user) return;
 
     try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ avatar_url: null })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      setUser(prev => prev ? { ...prev, avatar_url: '' } : null);
+    } catch (error) {
+      console.error('Error removing photo:', error);
+    }
+  };
+
+  const handleAddPost = async () => {
+    try {
+      if (!editorRef.current || !user) return;
+      
       const { html, raw } = editorRef.current.getContent();
-      const image = editorRef.current.getImage();
+      const currentImage = editorRef.current.getImage();
+      const currentDate = new Date().toISOString();
 
       const { data, error } = await supabase
         .from('posts')
         .insert([
           {
             content: html,
-            rawContent: raw,
-            user_id: user.id,
-            background: '#ffffff',
-            date: new Date().toISOString(),
-            image
+            user_id: user.id
           }
         ])
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error adding post:', error);
+        throw error;
+      }
 
-      setPosts(prev => [data, ...prev]);
-      editorRef.current.getContent(); // Reset editor
+      // Add the background, image, date, and rawContent locally instead of in the database
+      const newPost = {
+        ...data,
+        background: selectedBackground,
+        date: currentDate,
+        image: currentImage,
+        rawContent: raw
+      };
+
+      setPosts(prev => [newPost, ...prev]);
+      editorRef.current.reset(); // Reset editor
     } catch (error) {
       console.error('Error adding post:', error);
     }
@@ -435,13 +576,36 @@ const Profile: React.FC = () => {
         <WindowContent>
           <ProfileHeader>
             <div>
-              <img src={user.avatar_url || '/default-avatar.png'} alt="Profile" style={{ width: '120px', height: '120px', borderRadius: '50%' }} />
+              {user.avatar_url ? (
+                <ProfilePhoto src={user.avatar_url} alt="Profile" />
+              ) : (
+                <ProfilePhoto src={defaultAvatar} alt="Profile" />
+              )}
             </div>
             <ProfileInfo>
-              <h2>{user.username}</h2>
+              {isCurrentUser && isEditingUsername ? (
+                <UsernameWrapper>
+                  <UsernameInput
+                    type="text"
+                    value={newUsername}
+                    onChange={(e) => setNewUsername(e.target.value)}
+                  />
+                  <AquaButton onClick={handleSaveUsername} style={{ height: '36px', padding: '0 12px' }}>
+                    Save
+                  </AquaButton>
+                </UsernameWrapper>
+              ) : (
+                <UsernameWrapper>
+                  <h2>{user.username}</h2>
+                  {isCurrentUser && (
+                    <EditIcon onClick={() => setIsEditingUsername(true)}>✎</EditIcon>
+                  )}
+                </UsernameWrapper>
+              )}
+              
               {isCurrentUser && isEditingBio ? (
                 <div>
-                  <textarea
+                  <BioTextarea
                     value={newBio}
                     onChange={(e) => setNewBio(e.target.value)}
                     rows={3}
@@ -449,12 +613,12 @@ const Profile: React.FC = () => {
                   <AquaButton onClick={handleSaveBio}>Save</AquaButton>
                 </div>
               ) : (
-                <div>
-                  <p>{user.bio}</p>
+                <BioText onClick={isCurrentUser ? () => setIsEditingBio(true) : undefined}>
+                  {user.bio || 'No bio yet'}
                   {isCurrentUser && (
-                    <AquaButton onClick={() => setIsEditingBio(true)}>Edit Bio</AquaButton>
+                    <EditIcon>✎</EditIcon>
                   )}
-                </div>
+                </BioText>
               )}
               {isCurrentUser && (
                 <PhotoActions>
@@ -464,11 +628,17 @@ const Profile: React.FC = () => {
                     onChange={handlePhotoUpload}
                     style={{ display: 'none' }}
                     id="photo-upload"
+                    ref={fileInputRef}
                   />
-                  <label htmlFor="photo-upload">
-                    <AquaButton as="span">Change Photo</AquaButton>
-                  </label>
-                  <AquaButton onClick={handleLogout}>Logout</AquaButton>
+                  <AquaButton onClick={() => fileInputRef.current?.click()}>
+                    Change Photo
+                  </AquaButton>
+                  <RemoveButton onClick={handleRemovePhoto}>
+                    Remove Photo
+                  </RemoveButton>
+                  <AquaButton onClick={handleLogout}>
+                    Logout
+                  </AquaButton>
                 </PhotoActions>
               )}
             </ProfileInfo>
@@ -494,29 +664,62 @@ const Profile: React.FC = () => {
               <div>
                 {isCurrentUser && (
                   <GlassPanel>
-                    <RichTextEditor ref={editorRef} />
-                    <AquaButton onClick={handleAddPost}>Add Post</AquaButton>
+                    <h3 style={{ marginBottom: '15px', color: 'var(--primary)' }}>Create a New Post-it Note</h3>
+                    <SimpleEditor ref={editorRef} />
+                    <div style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      marginTop: '15px',
+                      alignItems: 'center'
+                    }}>
+                      <div>
+                        <small style={{ color: '#666' }}>Express yourself with a colorful note!</small>
+                        <BackgroundOptions>
+                          {CARD_BACKGROUNDS.map((bg, index) => (
+                            <BackgroundOption 
+                              key={index}
+                              $bg={bg}
+                              $selected={selectedBackground === bg}
+                              onClick={() => setSelectedBackground(bg)}
+                            />
+                          ))}
+                        </BackgroundOptions>
+                      </div>
+                      <AquaButton onClick={handleAddPost} style={{ minWidth: '140px' }}>
+                        Add Post-it Note
+                      </AquaButton>
+                    </div>
                   </GlassPanel>
                 )}
                 <Grid>
                   {posts.length > 0 ? (
-                    posts.map(post => (
-                      <Card key={post.id} gradient>
+                    posts.map((post, index) => (
+                      <PostCard key={post.id} $gradient style={{
+                        background: post.background || CARD_BACKGROUNDS[index % CARD_BACKGROUNDS.length]
+                      }}>
                         <div dangerouslySetInnerHTML={{ __html: post.content }} />
                         {post.image && (
-                          <img src={post.image} alt="Post" style={{ maxWidth: '100%', marginTop: '10px' }} />
+                          <img src={post.image} alt="Post" style={{ maxWidth: '100%', marginTop: '10px', borderRadius: '4px' }} />
                         )}
                         <Divider />
-                        <div>{new Date(post.date).toLocaleDateString()}</div>
-                        {isCurrentUser && (
-                          <AquaButton onClick={() => handleDeletePost(post.id)}>
-                            Delete
-                          </AquaButton>
-                        )}
-                      </Card>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>{new Date(post.date).toLocaleDateString()}</div>
+                          {isCurrentUser && (
+                            <AquaButton onClick={() => handleDeletePost(post.id)} style={{ height: '32px', padding: '6px 12px' }}>
+                              Delete
+                            </AquaButton>
+                          )}
+                        </div>
+                      </PostCard>
                     ))
                   ) : (
-                    <div>No posts yet</div>
+                    <EmptyPostsMessage>
+                      <h3>No Post-it Notes Yet</h3>
+                      <p>When you add posts, they'll appear here as colorful post-it notes!</p>
+                      {isCurrentUser && (
+                        <p>Use the editor above to create your first post.</p>
+                      )}
+                    </EmptyPostsMessage>
                   )}
                 </Grid>
               </div>
