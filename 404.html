@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="refresh" content="0; url=/aerofy/" />
+    <script>
+      // This script preserves the path after /aerofy
+      var path = window.location.pathname.replace(/^\/aerofy/, '');
+      var search = window.location.search || '';
+      var hash = window.location.hash || '';
+      window.location.replace('/aerofy/' + path + search + hash);
+    </script>
+  </head>
+  <body>
+    Redirecting...
+  </body>
+</html> 
