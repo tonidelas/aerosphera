@@ -940,50 +940,79 @@ const Profile: React.FC = () => {
   // Update audio source when user profile is loaded with a track
   useEffect(() => {
     if (user?.deezer_track_info?.preview && audioRef.current) {
-      // Reset audio state
-      setIsPlaying(false);
-      setPlaybackProgress(0);
-      
-      // Set new source
-      audioRef.current.src = user.deezer_track_info.preview || '';
-      
-      audioRef.current.onended = () => {
+      try {
+        // Reset audio state
         setIsPlaying(false);
         setPlaybackProgress(0);
-        if (progressInterval.current) {
-          clearInterval(progressInterval.current);
-          progressInterval.current = null;
-        }
-      };
-      
-      // Add error handler for audio loading issues
-      audioRef.current.onerror = (e) => {
-        console.error('Audio playback error:', e);
+        
+        // Set new source
+        audioRef.current.src = user.deezer_track_info.preview || '';
+        // Force load the audio to check for errors before trying to play
+        audioRef.current.load();
+        
+        audioRef.current.onended = () => {
+          setIsPlaying(false);
+          setPlaybackProgress(0);
+          if (progressInterval.current) {
+            clearInterval(progressInterval.current);
+            progressInterval.current = null;
+          }
+        };
+        
+        // Add error handler for audio loading issues
+        audioRef.current.onerror = (e) => {
+          console.error('Audio playback error:', e);
+          setIsPlaying(false);
+          // Check if there's CORS issues or other network problems
+          if (audioRef.current?.error?.code) {
+            console.error('Error code:', audioRef.current.error.code);
+          }
+        };
+      } catch (err) {
+        console.error('Error setting up audio:', err);
         setIsPlaying(false);
-      };
+      }
     }
   }, [user]);
 
   const handleTogglePlayback = useCallback(() => {
     if (!audioRef.current || !user?.deezer_track_info?.preview) return;
     
-    if (isPlaying) {
-      audioRef.current.pause();
-      if (progressInterval.current) {
-        clearInterval(progressInterval.current);
-        progressInterval.current = null;
-      }
-    } else {
-      audioRef.current.play();
-      progressInterval.current = setInterval(() => {
-        if (audioRef.current) {
-          const percentage = (audioRef.current.currentTime / audioRef.current.duration) * 100;
-          setPlaybackProgress(percentage);
+    try {
+      if (isPlaying) {
+        audioRef.current.pause();
+        if (progressInterval.current) {
+          clearInterval(progressInterval.current);
+          progressInterval.current = null;
         }
-      }, 100);
+      } else {
+        // Reload the audio source before playing to handle possible stale sources
+        audioRef.current.load();
+        const playPromise = audioRef.current.play();
+        
+        // Modern browsers return a promise from play()
+        if (playPromise !== undefined) {
+          playPromise.then(() => {
+            // Playback started successfully
+            progressInterval.current = setInterval(() => {
+              if (audioRef.current) {
+                const percentage = (audioRef.current.currentTime / audioRef.current.duration) * 100;
+                setPlaybackProgress(percentage);
+              }
+            }, 100);
+          }).catch(err => {
+            // Playback failed
+            console.error('Playback failed:', err);
+            setIsPlaying(false);
+          });
+        }
+      }
+      
+      setIsPlaying(!isPlaying);
+    } catch (err) {
+      console.error('Error during playback toggle:', err);
+      setIsPlaying(false);
     }
-    
-    setIsPlaying(!isPlaying);
   }, [isPlaying, user]);
 
   const searchDeezer = async (query: string) => {
