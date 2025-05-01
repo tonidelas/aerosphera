@@ -1,17 +1,17 @@
 {
   "files": {
     "main.css": "/aerofy/static/css/main.04124fa7.css",
-    "main.js": "/aerofy/static/js/main.7d827bc1.js",
+    "main.js": "/aerofy/static/js/main.9ee461b3.js",
     "static/js/952.216367c3.chunk.js": "/aerofy/static/js/952.216367c3.chunk.js",
     "static/js/453.e66a3f09.chunk.js": "/aerofy/static/js/453.e66a3f09.chunk.js",
     "index.html": "/aerofy/index.html",
     "main.04124fa7.css.map": "/aerofy/static/css/main.04124fa7.css.map",
-    "main.7d827bc1.js.map": "/aerofy/static/js/main.7d827bc1.js.map",
+    "main.9ee461b3.js.map": "/aerofy/static/js/main.9ee461b3.js.map",
     "952.216367c3.chunk.js.map": "/aerofy/static/js/952.216367c3.chunk.js.map",
     "453.e66a3f09.chunk.js.map": "/aerofy/static/js/453.e66a3f09.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.04124fa7.css",
-    "static/js/main.7d827bc1.js"
+    "static/js/main.9ee461b3.js"
   ]
 }
