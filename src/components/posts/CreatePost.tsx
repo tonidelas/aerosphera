@@ -86,6 +86,30 @@ const BackgroundOption = styled.div<{ $bg: string; $selected: boolean }>`
   }
 `;
 
+const StatusMessage = styled.div<{ $isError?: boolean }>`
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 4px;
+  background: ${props => props.$isError ? '#ffeeee' : '#eeffee'};
+  color: ${props => props.$isError ? '#cc0000' : '#007700'};
+  font-size: 14px;
+`;
+
+const ProgressBar = styled.div`
+  margin-top: 10px;
+  height: 8px;
+  border-radius: 4px;
+  background-color: #e0e0e0;
+  overflow: hidden;
+`;
+
+const ProgressFill = styled.div<{ $progress: number }>`
+  height: 100%;
+  width: ${props => props.$progress}%;
+  background: linear-gradient(to right, #4facfe, #00f2fe);
+  transition: width 0.3s ease;
+`;
+
 interface CreatePostProps {
   onPostCreated: () => void;
 }
@@ -93,6 +117,8 @@ interface CreatePostProps {
 const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedBackground, setSelectedBackground] = useState(CARD_BACKGROUNDS[0]);
+  const [statusMessage, setStatusMessage] = useState<{ text: string; isError: boolean } | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const editorRef = useRef<SimpleEditorHandle>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -100,18 +126,52 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
     if (!editorRef.current) return;
     const { html, raw } = editorRef.current.getContent();
     const image = editorRef.current.getImage();
-    if (!raw.trim() && !image) return;
+    
+    // Check if either text or image is provided
+    if (!raw.trim() && !image) {
+      setStatusMessage({ 
+        text: 'Please enter some text or add an image to create a post', 
+        isError: true 
+      });
+      setTimeout(() => setStatusMessage(null), 5000);
+      return;
+    }
 
     setIsSubmitting(true);
+    setStatusMessage(null);
+    setUploadProgress(null);
+    
     try {
       const user = supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
       let imageUrl = null;
       if (image) {
-        imageUrl = await uploadImage(image);
+        try {
+          setStatusMessage({ text: 'Uploading image...', isError: false });
+          // Use the progress callback
+          imageUrl = await uploadImage(
+            image, 
+            (progress) => {
+              setUploadProgress(progress);
+            }
+          );
+          setUploadProgress(100); // Ensure we show 100% when done
+        } catch (imageError) {
+          console.error('Error uploading image:', imageError);
+          setStatusMessage({ 
+            text: 'Failed to upload image. Your post will be created without the image.', 
+            isError: true 
+          });
+          // Continue with the post creation without the image
+          imageUrl = null;
+        } finally {
+          // Clear progress after a short delay
+          setTimeout(() => setUploadProgress(null), 1000);
+        }
       }
 
+      setStatusMessage({ text: 'Creating post...', isError: false });
       const { error } = await supabase
         .from('posts')
         .insert([
@@ -126,10 +186,15 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
       if (error) throw error;
 
       editorRef.current.reset();
+      setStatusMessage({ text: 'Post created successfully!', isError: false });
+      setTimeout(() => setStatusMessage(null), 3000);
       onPostCreated();
     } catch (error) {
       console.error('Error creating post:', error);
-      alert('Failed to create post. Please try again.');
+      setStatusMessage({ 
+        text: 'Failed to create post. Please try again.', 
+        isError: true 
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -152,6 +217,13 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
             ))}
           </BackgroundOptions>
         </div>
+        
+        {uploadProgress !== null && (
+          <ProgressBar>
+            <ProgressFill $progress={uploadProgress} />
+          </ProgressBar>
+        )}
+        
         <ButtonContainer>
           <Button
             type="submit"
@@ -160,6 +232,12 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
             {isSubmitting ? 'Posting...' : 'Post'}
           </Button>
         </ButtonContainer>
+        
+        {statusMessage && (
+          <StatusMessage $isError={statusMessage.isError}>
+            {statusMessage.text}
+          </StatusMessage>
+        )}
       </form>
     </CreatePostContainer>
   );

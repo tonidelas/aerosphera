@@ -165,12 +165,17 @@ const BackgroundOption = styled.div<{ $bg: string; $selected: boolean }>`
   }
 `;
 
-const PostCard = styled(Card)`
+const PostCard = styled(Card)<{ $hasImage?: boolean }>`
   position: relative;
   transform: rotate(${props => Math.random() * 6 - 3}deg);
   transition: all 0.3s ease;
   box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.15);
   padding: 20px;
+  
+  @media (min-width: 769px) {
+    height: ${props => props.$hasImage ? 'auto' : 'max-content'};
+    max-width: ${props => props.$hasImage ? '100%' : '300px'};
+  }
   
   &:hover {
     transform: rotate(0deg) scale(1.05);
@@ -1406,9 +1411,14 @@ const Profile: React.FC = () => {
                 <Grid>
                   {posts.length > 0 ? (
                     posts.map((post, index) => (
-                      <PostCard key={post.id} $gradient style={{
-                        background: post.background || CARD_BACKGROUNDS[index % CARD_BACKGROUNDS.length]
-                      }}>
+                      <PostCard 
+                        key={post.id} 
+                        $gradient 
+                        $hasImage={!!post.image_url}
+                        style={{
+                          background: post.background || CARD_BACKGROUNDS[index % CARD_BACKGROUNDS.length]
+                        }}
+                      >
                         <div dangerouslySetInnerHTML={{ __html: post.content }} />
                         {post.image_url && (
                           <img src={post.image_url} alt="Post" style={{ maxWidth: '100%', marginTop: '10px', borderRadius: '4px' }} />

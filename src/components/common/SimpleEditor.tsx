@@ -102,6 +102,12 @@ const RemoveButton = styled(AquaButton)`
   }
 `;
 
+const UploadStatus = styled.div`
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--accent);
+`;
+
 export interface SimpleEditorHandle {
   getContent: () => { html: string; raw: any };
   getImage: () => File | null;
@@ -117,6 +123,7 @@ const SimpleEditor = forwardRef<SimpleEditorHandle, SimpleEditorProps>(
     const [content, setContent] = useState('');
     const [selectedImage, setSelectedImage] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const [uploadStatus, setUploadStatus] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     
     useImperativeHandle(ref, () => ({
@@ -131,18 +138,43 @@ const SimpleEditor = forwardRef<SimpleEditorHandle, SimpleEditorProps>(
         setContent('');
         setSelectedImage(null);
         setImagePreview(null);
+        setUploadStatus(null);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
       }
     }), [content, selectedImage]);
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
-      if (file) {
+      if (!file) return;
+      
+      // Check file size (limit to 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        setUploadStatus('Error: Image too large (max 10MB)');
+        return;
+      }
+
+      try {
+        setUploadStatus('Processing image...');
         setSelectedImage(file);
+        
         const reader = new FileReader();
         reader.onloadend = () => {
           setImagePreview(reader.result as string);
+          setUploadStatus(null);
+        };
+        reader.onerror = () => {
+          setUploadStatus('Error loading image. Please try again.');
+          setSelectedImage(null);
+          setImagePreview(null);
         };
         reader.readAsDataURL(file);
+      } catch (error) {
+        console.error('Error handling image upload:', error);
+        setUploadStatus('Error uploading image. Please try another.');
+        setSelectedImage(null);
+        setImagePreview(null);
       }
     };
 
@@ -155,7 +187,7 @@ const SimpleEditor = forwardRef<SimpleEditorHandle, SimpleEditorProps>(
     return (
       <EditorContainer>
         <Toolbar>
-          <ToolbarButton onClick={handleOpenFileDialog}>
+          <ToolbarButton type="button" onClick={handleOpenFileDialog}>
             Add Image
           </ToolbarButton>
         </Toolbar>
@@ -173,12 +205,23 @@ const SimpleEditor = forwardRef<SimpleEditorHandle, SimpleEditorProps>(
           onChange={handleImageUpload}
         />
         
+        {uploadStatus && (
+          <UploadStatus>{uploadStatus}</UploadStatus>
+        )}
+        
         {imagePreview && (
           <ImageUploadContainer>
             <ImagePreview>
               <img src={imagePreview} alt="Preview" />
             </ImagePreview>
-            <RemoveButton onClick={() => { setSelectedImage(null); setImagePreview(null); }}>
+            <RemoveButton onClick={() => { 
+              setSelectedImage(null); 
+              setImagePreview(null);
+              setUploadStatus(null);
+              if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+              }
+            }}>
               Remove Image
             </RemoveButton>
           </ImageUploadContainer>
