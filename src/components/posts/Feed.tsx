@@ -8,6 +8,39 @@ const FeedContainer = styled.div`
   max-width: 600px;
   margin: 0 auto;
   padding: 20px;
+  
+  @media (max-width: 768px) {
+    padding: 15px;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 10px;
+    max-width: 100%;
+  }
+`;
+
+const LoadingIndicator = styled.div`
+  text-align: center;
+  padding: 30px;
+  color: var(--primary);
+  font-weight: bold;
+  
+  @media (max-width: 480px) {
+    padding: 20px;
+  }
+`;
+
+const EmptyFeed = styled.div`
+  text-align: center;
+  margin-top: 30px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 8px;
+  
+  @media (max-width: 480px) {
+    margin-top: 20px;
+    padding: 15px;
+  }
 `;
 
 interface Post {
@@ -175,7 +208,7 @@ const Feed: React.FC = () => {
   };
 
   if (loading) {
-    return <FeedContainer>Loading...</FeedContainer>;
+    return <LoadingIndicator>Loading...</LoadingIndicator>;
   }
 
   return (
@@ -198,9 +231,9 @@ const Feed: React.FC = () => {
           />
         ))
       ) : (
-        <div style={{ textAlign: 'center', marginTop: '30px' }}>
+        <EmptyFeed>
           No posts yet. Be the first to share something!
-        </div>
+        </EmptyFeed>
       )}
     </FeedContainer>
   );

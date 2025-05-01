@@ -9,6 +9,15 @@ const PostContainer = styled.div`
   padding: 16px;
   margin-bottom: 16px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  
+  @media (max-width: 768px) {
+    padding: 14px;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 12px;
+    margin-bottom: 12px;
+  }
 `;
 
 const PostHeader = styled.div`
@@ -22,6 +31,12 @@ const Avatar = styled.img`
   height: 40px;
   border-radius: 50%;
   margin-right: 12px;
+  
+  @media (max-width: 480px) {
+    width: 35px;
+    height: 35px;
+    margin-right: 10px;
+  }
 `;
 
 const Username = styled.span`
@@ -30,6 +45,11 @@ const Username = styled.span`
 
 const PostContent = styled.div`
   margin-bottom: 12px;
+  word-break: break-word;
+  
+  @media (max-width: 480px) {
+    font-size: 0.95rem;
+  }
 `;
 
 const PostImage = styled.img`
@@ -38,6 +58,21 @@ const PostImage = styled.img`
   object-fit: cover;
   border-radius: 4px;
   margin-bottom: 12px;
+  
+  @media (max-width: 768px) {
+    max-height: 400px;
+  }
+  
+  @media (max-width: 480px) {
+    max-height: 300px;
+    margin-bottom: 10px;
+  }
+`;
+
+const PostFooter = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 `;
 
 interface LikeButtonProps {
@@ -52,9 +87,13 @@ const LikeButton = styled.button<LikeButtonProps>`
   align-items: center;
   gap: 4px;
   color: ${props => props.$liked ? '#ff4757' : '#333'};
+  padding: 5px 10px;
+  border-radius: 20px;
+  transition: background 0.2s ease;
   
   &:hover {
     color: #ff4757;
+    background: rgba(255, 71, 87, 0.1);
   }
 `;
 
@@ -94,13 +133,15 @@ const Post: React.FC<PostProps> = ({
       
       {image_url && <PostImage src={image_url} alt="Post content" />}
       
-      <LikeButton 
-        $liked={is_liked}
-        onClick={() => onLike(id)}
-      >
-        {is_liked ? <HeartFill /> : <Heart />}
-        <span>{likes_count}</span>
-      </LikeButton>
+      <PostFooter>
+        <LikeButton 
+          $liked={is_liked}
+          onClick={() => onLike(id)}
+        >
+          {is_liked ? <HeartFill /> : <Heart />}
+          <span>{likes_count}</span>
+        </LikeButton>
+      </PostFooter>
     </PostContainer>
   );
 };

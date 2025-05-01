@@ -21,6 +21,15 @@ export const GlassPanel = styled.div`
     border-radius: 12px 12px 0 0;
     pointer-events: none;
   }
+  
+  @media (max-width: 768px) {
+    padding: 15px;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 12px;
+    margin-bottom: 15px;
+  }
 `;
 
 export const Dock = styled.div`
@@ -47,6 +56,10 @@ export const Dock = styled.div`
     background: linear-gradient(to bottom, var(--highlight), transparent);
     border-radius: 16px 16px 0 0;
     pointer-events: none;
+  }
+  
+  @media (max-width: 768px) {
+    max-width: 95%;
   }
 `;
 
@@ -140,6 +153,7 @@ export const NavBar = styled.nav`
   padding: 15px 0;
   box-shadow: 0 2px 10px var(--shadow);
   border-bottom: 1px solid var(--highlight);
+  position: relative;
 `;
 
 export const NavContainer = styled.div`
@@ -149,6 +163,10 @@ export const NavContainer = styled.div`
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 16px;
+  
+  @media (max-width: 768px) {
+    padding: 0 12px;
+  }
 `;
 
 export const NavBrand = styled.h1`
@@ -157,11 +175,19 @@ export const NavBrand = styled.h1`
   margin: 0;
   color: white;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  
+  @media (max-width: 480px) {
+    font-size: 20px;
+  }
 `;
 
 export const NavLinks = styled.div`
   display: flex;
   gap: 20px;
+  
+  @media (max-width: 768px) {
+    gap: 15px;
+  }
 `;
 
 export const NavLink = styled.a`
@@ -180,6 +206,15 @@ export const WindowContainer = styled.div`
   max-width: 1200px;
   margin: 30px auto;
   padding: 0 16px;
+  
+  @media (max-width: 768px) {
+    margin: 20px auto;
+  }
+  
+  @media (max-width: 480px) {
+    margin: 15px auto;
+    padding: 0 10px;
+  }
 `;
 
 export const WindowFrame = styled.div`
@@ -226,6 +261,14 @@ export const WindowTitle = styled.div`
 
 export const WindowContent = styled.div`
   padding: 20px;
+  
+  @media (max-width: 768px) {
+    padding: 15px;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 12px;
+  }
 `;
 
 export const Sidebar = styled.div`
@@ -260,28 +303,58 @@ export const Sidebar = styled.div`
 export const FormContainer = styled(WindowFrame)`
   max-width: 500px;
   margin: 40px auto;
+  
+  @media (max-width: 768px) {
+    margin: 30px auto;
+  }
+  
+  @media (max-width: 480px) {
+    margin: 20px auto;
+  }
 `;
 
 export const FormTitle = styled.h2`
   text-align: center;
   margin-bottom: 20px;
   color: var(--primary);
+  
+  @media (max-width: 480px) {
+    margin-bottom: 15px;
+    font-size: 1.5rem;
+  }
 `;
 
 export const FormGroup = styled.div`
   margin-bottom: 20px;
+  
+  @media (max-width: 480px) {
+    margin-bottom: 15px;
+  }
 `;
 
 export const FormLabel = styled.label`
   display: block;
   margin-bottom: 5px;
   font-weight: bold;
+  
+  @media (max-width: 480px) {
+    font-size: 0.9rem;
+    margin-bottom: 4px;
+  }
 `;
 
 export const ErrorMessage = styled.div`
   color: #FF3B30;
   font-size: 14px;
   margin-top: 5px;
+  padding: 8px;
+  background-color: rgba(255, 59, 48, 0.1);
+  border-radius: 4px;
+  
+  @media (max-width: 480px) {
+    font-size: 13px;
+    padding: 6px;
+  }
 `;
 
 export const SuccessMessage = styled.div`
@@ -291,6 +364,12 @@ export const SuccessMessage = styled.div`
   padding: 10px;
   background-color: rgba(52, 199, 89, 0.1);
   border-radius: 8px;
+  
+  @media (max-width: 480px) {
+    font-size: 13px;
+    padding: 8px;
+    margin-top: 8px;
+  }
 `;
 
 export const ProfileHeader = styled.div`
@@ -300,69 +379,111 @@ export const ProfileHeader = styled.div`
   align-items: center;
   
   @media (max-width: 768px) {
+    gap: 15px;
+    margin-bottom: 20px;
+  }
+  
+  @media (max-width: 480px) {
     flex-direction: column;
-    align-items: flex-start;
+    text-align: center;
+    gap: 10px;
   }
 `;
 
 export const ProfileImage = styled.div`
   width: 120px;
   height: 120px;
-  border-radius: 60px;
-  background-color: var(--secondary);
+  border-radius: 50%;
+  background-color: #DDDDDD;
+  border: 2px solid var(--accent);
   overflow: hidden;
-  box-shadow: 0 2px 10px var(--shadow);
-  border: 3px solid white;
+  box-shadow: 0 4px 8px var(--shadow);
   
   img {
     width: 100%;
     height: 100%;
     object-fit: cover;
   }
+  
+  @media (max-width: 768px) {
+    width: 100px;
+    height: 100px;
+  }
 `;
 
 export const ProfileInfo = styled.div`
   flex: 1;
+  
+  h2 {
+    font-size: 1.8rem;
+    margin-bottom: 10px;
+    
+    @media (max-width: 768px) {
+      font-size: 1.5rem;
+      margin-bottom: 8px;
+    }
+  }
+  
+  p {
+    color: #555555;
+    margin-bottom: 10px;
+  }
 `;
 
 export const TabContainer = styled.div`
-  margin-bottom: 20px;
+  width: 100%;
 `;
 
 export const TabsHeader = styled.div`
   display: flex;
-  gap: 5px;
-  margin-bottom: -1px;
+  border-bottom: 1px solid #DDDDDD;
+  margin-bottom: 20px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  
+  &::-webkit-scrollbar {
+    height: 4px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+  }
+  
+  @media (max-width: 480px) {
+    margin-bottom: 15px;
+  }
 `;
 
 interface TabProps {
   $active?: boolean;
 }
 
-export const Tab = styled.div<TabProps>`
-  padding: 10px 15px;
-  background: ${props => props.$active 
-    ? 'linear-gradient(to bottom, #FFF, #F5F5F7)' 
-    : 'linear-gradient(to bottom, #E5E5E5, #D1D1D1)'};
-  border: 1px solid #CCCCCC;
-  border-bottom: ${props => props.$active ? 'none' : '1px solid #CCCCCC'};
-  border-radius: 8px 8px 0 0;
-  cursor: pointer;
-  color: ${props => props.$active ? 'var(--primary)' : '#666'};
+export const Tab = styled.button<TabProps>`
+  padding: 10px 20px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid ${props => props.$active ? 'var(--accent)' : 'transparent'};
+  color: ${props => props.$active ? 'var(--accent)' : 'var(--text)'};
   font-weight: ${props => props.$active ? 'bold' : 'normal'};
-  position: relative;
-  z-index: ${props => props.$active ? '1' : '0'};
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: none;
   
   &:hover {
-    background: linear-gradient(to bottom, #FFF, #F5F5F7);
+    color: var(--accent);
+    background: none;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 8px 15px;
+    font-size: 0.9rem;
+    flex-shrink: 0;
   }
 `;
 
 export const TabContent = styled.div`
-  background-color: #FFF;
-  border: 1px solid #CCCCCC;
-  border-radius: 0 8px 8px 8px;
-  padding: 20px;
+  width: 100%;
 `;
 
 export const Divider = styled.hr`
@@ -374,9 +495,19 @@ export const Divider = styled.hr`
 
 export const Grid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 20px;
   margin-top: 20px;
+  
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 15px;
+  }
+  
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
 `;
 
 interface CardProps {
@@ -384,17 +515,14 @@ interface CardProps {
 }
 
 export const Card = styled.div<CardProps>`
-  background: ${props => props.$gradient 
-    ? 'linear-gradient(135deg, #F5F7FA, #E4EDF7)' 
-    : 'white'};
-  border-radius: 10px;
-  box-shadow: 0 3px 10px var(--shadow);
+  background: ${props => props.$gradient ? 'linear-gradient(to bottom, #F5F9FF, #E4EFF7)' : 'white'};
+  border-radius: 8px;
   padding: 15px;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 4px 8px var(--shadow);
+  height: 100%;
   
-  &:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 20px var(--shadow);
+  @media (max-width: 480px) {
+    padding: 12px;
   }
 `;
 

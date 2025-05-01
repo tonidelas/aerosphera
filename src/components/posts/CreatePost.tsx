@@ -9,6 +9,15 @@ const CreatePostContainer = styled.div`
   padding: 16px;
   margin-bottom: 16px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  
+  @media (max-width: 768px) {
+    padding: 14px;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 12px;
+    margin-bottom: 12px;
+  }
 `;
 
 const TextArea = styled.textarea`
@@ -20,6 +29,12 @@ const TextArea = styled.textarea`
   margin-bottom: 12px;
   resize: vertical;
   font-family: inherit;
+  
+  @media (max-width: 480px) {
+    min-height: 80px;
+    padding: 10px;
+    font-size: 0.95rem;
+  }
 `;
 
 const ImagePreview = styled.img`
@@ -27,6 +42,21 @@ const ImagePreview = styled.img`
   max-height: 300px;
   margin-bottom: 12px;
   border-radius: 4px;
+  
+  @media (max-width: 480px) {
+    max-height: 200px;
+    margin-bottom: 10px;
+  }
+`;
+
+const ButtonContainer = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  
+  @media (max-width: 480px) {
+    gap: 6px;
+  }
 `;
 
 const Button = styled.button`
@@ -46,6 +76,12 @@ const Button = styled.button`
     background: #ccc;
     cursor: not-allowed;
   }
+  
+  @media (max-width: 480px) {
+    padding: 8px 12px;
+    font-size: 0.9rem;
+    margin-right: 0;
+  }
 `;
 
 const FileInput = styled.input`
@@ -63,6 +99,12 @@ const FileLabel = styled.label`
   
   &:hover {
     background: #5a6268;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 8px 12px;
+    font-size: 0.9rem;
+    margin-right: 0;
   }
 `;
 
@@ -139,7 +181,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
           <ImagePreview src={imagePreview} alt="Preview" />
         )}
         
-        <div>
+        <ButtonContainer>
           <FileInput
             type="file"
             id="image-upload"
@@ -156,7 +198,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
           >
             {isSubmitting ? 'Posting...' : 'Post'}
           </Button>
-        </div>
+        </ButtonContainer>
       </form>
     </CreatePostContainer>
   );

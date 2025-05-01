@@ -19,12 +19,26 @@ const GlobalStyles = createGlobalStyle`
     --button-gradient-end: #E5E5E5;
     --button-border: #AAAAAA;
     --sidebar-bg: #D1DEE9;
+
+    /* Responsive breakpoints */
+    --mobile: 480px;
+    --tablet: 768px;
+    --desktop: 1024px;
+    --large-desktop: 1280px;
   }
 
   * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+  }
+
+  html {
+    font-size: 16px;
+    
+    @media (max-width: 768px) {
+      font-size: 14px;
+    }
   }
 
   body {
@@ -35,6 +49,9 @@ const GlobalStyles = createGlobalStyle`
     background-image: linear-gradient(to bottom, #BADFFF, #E2E8F0);
     background-attachment: fixed;
     background-size: cover;
+    min-height: 100vh;
+    width: 100%;
+    overflow-x: hidden;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -96,9 +113,44 @@ const GlobalStyles = createGlobalStyle`
   }
 
   .container {
+    width: 100%;
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 16px;
+    
+    @media (max-width: 768px) {
+      padding: 0 12px;
+    }
+    
+    @media (max-width: 480px) {
+      padding: 0 8px;
+    }
+  }
+
+  /* Utility classes for responsive layouts */
+  .hide-on-mobile {
+    @media (max-width: 480px) {
+      display: none !important;
+    }
+  }
+  
+  .show-on-mobile {
+    display: none !important;
+    
+    @media (max-width: 480px) {
+      display: flex !important;
+    }
+  }
+  
+  /* Apply default margins to main content areas */
+  main, section, article {
+    margin-bottom: 2rem;
+  }
+
+  /* Ensure images are responsive by default */
+  img {
+    max-width: 100%;
+    height: auto;
   }
 `;
 

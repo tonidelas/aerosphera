@@ -51,12 +51,107 @@ const DockWrapper = styled.div`
 const DockContainer = styled.div`
   max-width: 600px;
   width: 100%;
+  padding: 0 10px;
+  
+  @media (max-width: 480px) {
+    padding: 0 5px;
+  }
+`;
+
+// Mobile menu components
+const MobileMenuIcon = styled.div`
+  display: none;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 30px;
+  height: 21px;
+  cursor: pointer;
+  
+  @media (max-width: 768px) {
+    display: flex;
+  }
+  
+  span {
+    height: 3px;
+    width: 100%;
+    background-color: white;
+    border-radius: 3px;
+    transition: all 0.3s ease;
+  }
+  
+  &.open {
+    span:nth-child(1) {
+      transform: rotate(45deg) translate(5px, 5px);
+    }
+    
+    span:nth-child(2) {
+      opacity: 0;
+    }
+    
+    span:nth-child(3) {
+      transform: rotate(-45deg) translate(7px, -6px);
+    }
+  }
+`;
+
+const MobileNavLinks = styled.div<{ $isOpen: boolean }>`
+  display: none;
+  
+  @media (max-width: 768px) {
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(to bottom, #7DC5FF, #4A8AF4);
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    padding: ${props => (props.$isOpen ? '10px 0' : '0')};
+    max-height: ${props => (props.$isOpen ? '300px' : '0')};
+    overflow: hidden;
+    transition: all 0.3s ease-in-out;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    z-index: 99;
+  }
+  
+  a {
+    padding: 12px 16px;
+    color: white;
+    text-decoration: none;
+    text-align: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+`;
+
+const ResponsiveNavLinks = styled(NavLinks)`
+  @media (max-width: 768px) {
+    display: none;
+  }
+`;
+
+const ResponsiveDock = styled(Dock)`
+  @media (max-width: 480px) {
+    padding: 10px;
+    gap: 10px;
+  }
+`;
+
+const ResponsiveDockIcon = styled(DockIcon)`
+  @media (max-width: 480px) {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+  }
 `;
 
 const Navbar: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   useEffect(() => {
     // Check localStorage and Supabase session
@@ -98,13 +193,31 @@ const Navbar: React.FC = () => {
       console.error('Error signing out:', error);
     }
   };
+
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
+  };
   
   return (
     <NavbarWrapper>
       <NavBar>
         <NavContainer>
           <NavBrand>Aqua Social</NavBrand>
-          <NavLinks>
+          
+          <MobileMenuIcon 
+            className={isMobileMenuOpen ? 'open' : ''} 
+            onClick={toggleMobileMenu}
+          >
+            <span></span>
+            <span></span>
+            <span></span>
+          </MobileMenuIcon>
+
+          <ResponsiveNavLinks>
             {isLoggedIn ? (
               <>
                 <NavLink as={Link} to="/feed">
@@ -137,27 +250,63 @@ const Navbar: React.FC = () => {
                 </NavLink>
               </>
             )}
-          </NavLinks>
+          </ResponsiveNavLinks>
         </NavContainer>
       </NavBar>
+
+      <MobileNavLinks $isOpen={isMobileMenuOpen}>
+        {isLoggedIn ? (
+          <>
+            <NavLink as={Link} to="/feed" onClick={closeMobileMenu}>
+              Feed
+            </NavLink>
+            <NavLink as={Link} to="/profile" onClick={closeMobileMenu}>
+              My Profile
+            </NavLink>
+            <NavLink as={Link} to="/search" onClick={closeMobileMenu}>
+              Find Friends
+            </NavLink>
+            <NavLink
+              as="a"
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                handleLogout();
+                closeMobileMenu();
+              }}
+            >
+              Logout
+            </NavLink>
+          </>
+        ) : (
+          <>
+            <NavLink as={Link} to="/login" onClick={closeMobileMenu}>
+              Sign In
+            </NavLink>
+            <NavLink as={Link} to="/register" onClick={closeMobileMenu}>
+              Sign Up
+            </NavLink>
+          </>
+        )}
+      </MobileNavLinks>
       
       {isLoggedIn && (
         <DockWrapper>
           <DockContainer>
-            <Dock>
-              <DockIcon $active={location.pathname === '/feed'} to="/feed">
+            <ResponsiveDock>
+              <ResponsiveDockIcon $active={location.pathname === '/feed'} to="/feed">
                 🏠
-              </DockIcon>
-              <DockIcon $active={location.pathname === '/profile'} to="/profile">
+              </ResponsiveDockIcon>
+              <ResponsiveDockIcon $active={location.pathname === '/profile'} to="/profile">
                 👤
-              </DockIcon>
-              <DockIcon $active={location.pathname === '/search'} to="/search">
+              </ResponsiveDockIcon>
+              <ResponsiveDockIcon $active={location.pathname === '/search'} to="/search">
                 🔍
-              </DockIcon>
-              <DockIcon $active={location.pathname === '/settings'} to="/settings">
+              </ResponsiveDockIcon>
+              <ResponsiveDockIcon $active={location.pathname === '/settings'} to="/settings">
                 ⚙️
-              </DockIcon>
-            </Dock>
+              </ResponsiveDockIcon>
+            </ResponsiveDock>
           </DockContainer>
         </DockWrapper>
       )}
