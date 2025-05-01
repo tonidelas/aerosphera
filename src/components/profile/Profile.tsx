@@ -148,6 +148,7 @@ interface Post {
   date: string;
   image?: string | null;
   user_id: string;
+  created_at?: string;
 }
 
 interface UserProfile {
@@ -976,7 +977,7 @@ const Profile: React.FC = () => {
                         )}
                         <Divider />
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div>{new Date(post.date).toLocaleDateString()}</div>
+                          <div>{new Date(post.created_at || post.date).toLocaleDateString()}</div>
                           {isCurrentUser && (
                             <AquaButton onClick={() => handleDeletePost(post.id)} style={{ height: '32px', padding: '6px 12px' }}>
                               Delete

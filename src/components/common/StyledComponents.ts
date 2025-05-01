@@ -148,12 +148,28 @@ export const GlassTextArea = styled.textarea`
 `;
 
 export const NavBar = styled.nav`
-  background: linear-gradient(to bottom, #7DC5FF, #4A8AF4);
-  color: white;
+  background: rgba(200, 220, 255, 0.5);
+  backdrop-filter: blur(10px);
+  border-radius: 0 0 16px 16px;
+  box-shadow: 0 4px 20px var(--shadow);
   padding: 15px 0;
-  box-shadow: 0 2px 10px var(--shadow);
-  border-bottom: 1px solid var(--highlight);
+  color: white;
   position: relative;
+  z-index: 100;
+  border: 1px solid var(--highlight);
+  border-top: none;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(to bottom, var(--highlight), transparent);
+    border-radius: 0 0 0 0;
+    pointer-events: none;
+  }
 `;
 
 export const NavContainer = styled.div`
