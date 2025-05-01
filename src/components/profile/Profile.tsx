@@ -262,11 +262,20 @@ const IconButton = styled.button`
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  transition: background 0.2s;
-  font-size: 16px;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  width: 24px;
+  height: 24px;
   
   &:hover {
     background: rgba(0, 0, 0, 0.1);
+    transform: scale(1.1);
+  }
+  
+  @media (max-width: 480px) {
+    font-size: 12px;
+    width: 22px;
+    height: 22px;
   }
 `;
 
@@ -605,6 +614,17 @@ const VerifiedBadge = styled.span`
   font-size: 1rem;
 `;
 
+// Create a new EditPencil component for consistency
+const EditPencil = () => (
+  <span style={{ 
+    fontSize: '14px',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    opacity: 0.8
+  }}>✎</span>
+);
+
 const Profile: React.FC = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -616,6 +636,7 @@ const Profile: React.FC = () => {
   const [newUsername, setNewUsername] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isCurrentUser, setIsCurrentUser] = useState(true); // Whether viewing own profile
+  const [isEditMode, setIsEditMode] = useState(false); // Whether edit mode is enabled
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false); // For logout confirmation
   const editorRef = useRef<SimpleEditorHandle>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -1084,6 +1105,25 @@ const Profile: React.FC = () => {
               <LogoutButton onClick={() => setShowLogoutConfirm(true)} title="Logout">
                 <span role="img" aria-label="logout">⏻</span>
               </LogoutButton>
+              {/* Add Edit Toggle Button */}
+              <div style={{
+                position: 'absolute',
+                top: '18px',
+                right: '72px',
+                zIndex: 20
+              }}>
+                <AquaButton 
+                  onClick={() => setIsEditMode(!isEditMode)}
+                  style={{ 
+                    height: '36px',
+                    padding: '0 15px',
+                    background: isEditMode ? 'var(--accent)' : 'white',
+                    color: isEditMode ? 'white' : 'var(--primary)'
+                  }}
+                >
+                  {isEditMode ? 'View Mode' : 'Edit Profile'}
+                </AquaButton>
+              </div>
               {showLogoutConfirm && (
                 <div style={{
                   position: 'fixed',
@@ -1125,7 +1165,7 @@ const Profile: React.FC = () => {
                 />
               )}
               {/* Banner actions */}
-              {isCurrentUser && (
+              {isCurrentUser && isEditMode && (
                 <BannerActions>
                   <input
                     type="file"
@@ -1175,7 +1215,7 @@ const Profile: React.FC = () => {
               
               <ProfileDetails>
                 <UsernameWrapper>
-                  {isCurrentUser && isEditingUsername ? (
+                  {isCurrentUser && isEditMode && isEditingUsername ? (
                     <>
                       <UsernameInput
                         type="text"
@@ -1189,9 +1229,9 @@ const Profile: React.FC = () => {
                   ) : (
                     <>
                       <h2>{user.username || 'Unknown User'}</h2>
-                      {isCurrentUser && (
+                      {isCurrentUser && isEditMode && (
                         <IconButton onClick={() => setIsEditingUsername(true)} title="Edit username">
-                          ✎
+                          <EditPencil />
                         </IconButton>
                       )}
                     </>
@@ -1204,26 +1244,12 @@ const Profile: React.FC = () => {
                     <StatLabel>Posts</StatLabel>
                   </StatItem>
                 </ProfileStats>
-                
-                {isCurrentUser && (
-                  <div>
-                    {isCurrentUser && !isCurrentUser && (
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handlePhotoUpload}
-                        style={{ display: 'none' }}
-                        ref={fileInputRef}
-                      />
-                    )}
-                  </div>
-                )}
               </ProfileDetails>
             </ProfileHeader>
             
             <div style={{ padding: '0 20px 20px' }}>
               <ProfileBio>
-                {isCurrentUser && isEditingBio ? (
+                {isCurrentUser && isEditMode && isEditingBio ? (
                   <div>
                     <BioTextarea
                       value={newBio}
@@ -1233,10 +1259,10 @@ const Profile: React.FC = () => {
                     <AquaButton onClick={handleSaveBio}>Save</AquaButton>
                   </div>
                 ) : (
-                  <BioText onClick={isCurrentUser ? () => setIsEditingBio(true) : undefined}>
+                  <BioText onClick={isCurrentUser && isEditMode ? () => setIsEditingBio(true) : undefined}>
                     {user.bio || 'No bio yet'}
-                    {isCurrentUser && (
-                      <EditIcon>✎</EditIcon>
+                    {isCurrentUser && isEditMode && (
+                      <EditIcon><EditPencil /></EditIcon>
                     )}
                   </BioText>
                 )}
@@ -1276,7 +1302,7 @@ const Profile: React.FC = () => {
                         </div>
                       </SongInfo>
                       <PlayerControls>
-                        {isCurrentUser && (
+                        {isCurrentUser && isEditMode && (
                           <PlayerButton onClick={handleRemoveTrack} title="Remove song">
                             ❌
                           </PlayerButton>
@@ -1287,7 +1313,7 @@ const Profile: React.FC = () => {
                 ) : (
                   <div style={{ textAlign: 'center' }}>
                     <p>No song selected for profile</p>
-                    {isCurrentUser && (
+                    {isCurrentUser && isEditMode && (
                       <AddSongButton onClick={() => setShowSpotifySearch(true)}>
                         Add a song to your profile
                       </AddSongButton>
@@ -1297,18 +1323,23 @@ const Profile: React.FC = () => {
               </ProfileMusicContainer>
             </div>
 
-            {/* Clean up the ProfilePhotoContainer since we moved the photo */}
-            {isCurrentUser && (
+            {/* Profile photo edit button */}
+            {isCurrentUser && isEditMode && (
               <div style={{ 
                 position: 'absolute', 
                 top: '90px',
                 left: '90px', 
                 background: 'white',
                 borderRadius: '50%',
-                padding: '4px',
+                padding: '2px',
                 boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
                 cursor: 'pointer',
-                zIndex: 10
+                zIndex: 10,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '26px',
+                height: '26px'
               }}>
                 <input
                   type="file"
@@ -1317,8 +1348,9 @@ const Profile: React.FC = () => {
                   style={{ display: 'none' }}
                   ref={fileInputRef}
                 />
-                <IconButton onClick={() => fileInputRef.current?.click()} title="Change photo">
-                  ✎
+                <IconButton onClick={() => fileInputRef.current?.click()} title="Change photo" 
+                  style={{ padding: 0, width: '20px', height: '20px' }}>
+                  <EditPencil />
                 </IconButton>
               </div>
             )}
@@ -1384,7 +1416,7 @@ const Profile: React.FC = () => {
                         <Divider />
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <div>{new Date(post.created_at || post.date).toLocaleDateString()}</div>
-                          {isCurrentUser && (
+                          {isCurrentUser && isEditMode && (
                             <AquaButton onClick={() => handleDeletePost(post.id)} style={{ height: '32px', padding: '6px 12px' }}>
                               Delete
                             </AquaButton>
