@@ -392,7 +392,7 @@ const Navbar: React.FC = () => {
     <NavbarWrapper>
       <NavBar>
         <NavContainer>
-          <NavBrand to="/">Aerofy</NavBrand>
+          <NavBrand to="/">Aerophera</NavBrand>
           
           <MobileMenuIcon 
             className={isMobileMenuOpen ? 'open' : ''} 
