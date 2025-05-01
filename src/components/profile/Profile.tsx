@@ -74,6 +74,9 @@ const UsernameWrapper = styled.div`
   
   h2 {
     margin: 0;
+    color: #000;
+    font-size: 1.8em;
+    word-break: break-word;
   }
 `;
 
@@ -223,6 +226,12 @@ const ProfilePhotoContainer = styled.div`
   padding: 4px;
   background: white;
   z-index: 5;
+`;
+
+const ProfileInfoContainer = styled.div`
+  padding-left: 10px;
+  margin-left: 130px; /* Make room for the profile photo */
+  padding-top: 5px;
 `;
 
 const IconButton = styled.button`
@@ -398,6 +407,18 @@ const Profile: React.FC = () => {
 
     fetchUserData();
   }, [navigate, userId]);
+
+  // Debug effect to log user data when loaded
+  useEffect(() => {
+    if (user) {
+      console.log('User data loaded:', { 
+        user, 
+        username: user.username,
+        isCurrentUser,
+        isEditingUsername
+      });
+    }
+  }, [user, isCurrentUser, isEditingUsername]);
 
   const handleLogout = async () => {
     try {
@@ -717,7 +738,7 @@ const Profile: React.FC = () => {
             </ProfilePhotoContainer>
 
             {/* Profile Info */}
-            <div style={{ paddingLeft: '10px' }}>
+            <ProfileInfoContainer>
               {isCurrentUser && isEditingUsername ? (
                 <UsernameWrapper>
                   <UsernameInput
@@ -731,7 +752,7 @@ const Profile: React.FC = () => {
                 </UsernameWrapper>
               ) : (
                 <UsernameWrapper>
-                  <h2>{user.username}</h2>
+                  <h2>{user.username || 'Unknown User'}</h2>
                   {isCurrentUser && (
                     <IconButton onClick={() => setIsEditingUsername(true)} title="Edit username">
                       ✎
@@ -757,7 +778,7 @@ const Profile: React.FC = () => {
                   )}
                 </BioText>
               )}
-            </div>
+            </ProfileInfoContainer>
           </ProfileSectionContainer>
 
           <TabsHeader style={{ marginTop: '20px' }}>
