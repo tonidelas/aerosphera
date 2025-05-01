@@ -206,6 +206,7 @@ export const WindowContainer = styled.div`
   max-width: 1200px;
   margin: 30px auto;
   padding: 0 16px;
+  @apply .glass-bg;
   
   @media (max-width: 768px) {
     margin: 20px auto;

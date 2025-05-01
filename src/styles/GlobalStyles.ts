@@ -152,6 +152,16 @@ const GlobalStyles = createGlobalStyle`
     max-width: 100%;
     height: auto;
   }
+
+  .glass-bg {
+    background: var(--glass);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    box-shadow: 0 4px 20px var(--shadow);
+    border: 1px solid var(--highlight);
+    position: relative;
+    overflow: hidden;
+  }
 `;
 
 export default GlobalStyles; 
