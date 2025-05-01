@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter as Router } from 'react-router-dom';
+import { HashRouter as Router } from 'react-router-dom';
 import './index.css';
 import './styles/dock-scroll.css';
 import 'react-draft-wysiwyg/dist/react-draft-wysiwyg.css';
@@ -22,7 +22,7 @@ const root = ReactDOM.createRoot(
 root.render(
   <React.StrictMode>
     <StyleSheetManager shouldForwardProp={shouldForwardProp}>
-      <Router basename="/aerofy">
+      <Router>
         <App />
       </Router>
     </StyleSheetManager>
