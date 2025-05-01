@@ -1,17 +1,17 @@
 {
   "files": {
-    "main.css": "/aerofy/static/css/main.04124fa7.css",
-    "main.js": "/aerofy/static/js/main.63d41155.js",
-    "static/js/952.216367c3.chunk.js": "/aerofy/static/js/952.216367c3.chunk.js",
-    "static/js/453.e66a3f09.chunk.js": "/aerofy/static/js/453.e66a3f09.chunk.js",
-    "index.html": "/aerofy/index.html",
-    "main.04124fa7.css.map": "/aerofy/static/css/main.04124fa7.css.map",
-    "main.63d41155.js.map": "/aerofy/static/js/main.63d41155.js.map",
-    "952.216367c3.chunk.js.map": "/aerofy/static/js/952.216367c3.chunk.js.map",
-    "453.e66a3f09.chunk.js.map": "/aerofy/static/js/453.e66a3f09.chunk.js.map"
+    "main.css": "/static/css/main.04124fa7.css",
+    "main.js": "/static/js/main.39ac0c57.js",
+    "static/js/952.216367c3.chunk.js": "/static/js/952.216367c3.chunk.js",
+    "static/js/453.e66a3f09.chunk.js": "/static/js/453.e66a3f09.chunk.js",
+    "index.html": "/index.html",
+    "main.04124fa7.css.map": "/static/css/main.04124fa7.css.map",
+    "main.39ac0c57.js.map": "/static/js/main.39ac0c57.js.map",
+    "952.216367c3.chunk.js.map": "/static/js/952.216367c3.chunk.js.map",
+    "453.e66a3f09.chunk.js.map": "/static/js/453.e66a3f09.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.04124fa7.css",
-    "static/js/main.63d41155.js"
+    "static/js/main.39ac0c57.js"
   ]
 }
