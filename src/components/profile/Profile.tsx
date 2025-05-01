@@ -979,6 +979,52 @@ const Profile: React.FC = () => {
     }
   };
 
+  // Add a refreshTrack function to get a fresh preview URL
+  const refreshTrack = async () => {
+    if (!user?.music_track_info) return;
+    
+    setIsSearching(true);
+    try {
+      // Re-search for the current track to get a fresh preview URL
+      const query = `${user.music_track_info.title} ${user.music_track_info.artist.name}`;
+      const results = await searchDeezerTracks(query);
+      
+      if (results.length > 0) {
+        // Find a close match to the current track
+        const match = results.find(track => 
+          track.title.toLowerCase() === user.music_track_info!.title.toLowerCase() &&
+          track.artist.name.toLowerCase() === user.music_track_info!.artist.name.toLowerCase()
+        ) || results[0]; // Use first result if no exact match
+        
+        // Update the track in the database
+        const { error } = await supabase
+          .from('profiles')
+          .update({
+            music_track_id: match.id,
+            music_track_info: match
+          })
+          .eq('id', user.id);
+        
+        if (error) throw error;
+        
+        // Update the UI
+        setUser(prev => prev ? {
+          ...prev,
+          music_track_id: match.id,
+          music_track_info: match
+        } : null);
+        
+        console.log('Track refreshed with new data:', match);
+      } else {
+        console.error('No results found when refreshing track');
+      }
+    } catch (error) {
+      console.error('Error refreshing track:', error);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
   const renderSearchResults = () => {
     if (isSearching) {
       return <p style={{ textAlign: 'center', color: '#666' }}>Searching...</p>;
@@ -1004,6 +1050,14 @@ const Profile: React.FC = () => {
       </SongResult>
     ));
   };
+
+  // Add a useEffect to automatically refresh track data on load
+  useEffect(() => {
+    // If the user has a track, refresh it automatically when the profile loads
+    if (user?.music_track_info) {
+      refreshTrack();
+    }
+  }, [user?.id]); // Only run when the user ID changes (when profile first loads)
 
   if (isLoading) {
     return <div>Loading...</div>;
@@ -1202,12 +1256,21 @@ const Profile: React.FC = () => {
                         <ArtistName>{user.music_track_info.artist.name}</ArtistName>
                         <div style={{ marginTop: '8px' }}>
                           {user.music_track_info.preview ? (
-                            <audio controls src={user.music_track_info.preview} style={{ width: '100%' }}>
+                            <audio 
+                              controls 
+                              src={user.music_track_info.preview} 
+                              style={{ width: '100%' }}
+                              onError={(e) => {
+                                console.error('Audio playback error:', e);
+                                // Automatically refresh when playback fails
+                                refreshTrack();
+                              }}
+                            >
                               Your browser does not support the audio element.
                             </audio>
                           ) : (
                             <small style={{ color: '#ff5555', fontSize: '0.8em' }}>
-                              No preview available
+                              No preview available. Loading new track data...
                             </small>
                           )}
                         </div>
