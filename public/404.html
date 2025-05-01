@@ -4,14 +4,13 @@
     <meta charset="utf-8" />
     <title>Redirecting...</title>
     <script type="text/javascript">
-      // Only redirect if not already at /aerofy
+      // Redirect to the correct path on custom domain
       (function() {
         var pathname = window.location.pathname;
-        var repo = '/aerofy';
-        // If not already at /aerofy, redirect
-        if (!pathname.startsWith(repo)) {
-          window.location.replace(repo + pathname + window.location.search + window.location.hash);
-        }
+        var search = window.location.search;
+        var hash = window.location.hash;
+        // Redirect to the same path (root-relative)
+        window.location.replace('/' + pathname.replace(/^\//, '') + search + hash);
       })();
     </script>
   </head>
