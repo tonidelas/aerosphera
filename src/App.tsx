@@ -8,6 +8,7 @@ import Register from './components/auth/Register';
 import Profile from './components/profile/Profile';
 import Search from './components/profile/Search';
 import Feed from './components/posts/Feed';
+import Settings from './components/settings/Settings';
 import { supabase } from './utils/supabaseClient';
 
 // Protected route component
@@ -49,16 +50,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   return isAuthenticated ? <>{children}</> : null;
-};
-
-// Temporary Settings component
-const Settings: React.FC = () => {
-  return (
-    <div style={{ maxWidth: '600px', margin: '0 auto', padding: '20px' }}>
-      <h1>Settings</h1>
-      <p>This page is under construction. Settings functionality will be added soon.</p>
-    </div>
-  );
 };
 
 const App: React.FC = () => {

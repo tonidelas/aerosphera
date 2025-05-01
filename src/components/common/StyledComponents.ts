@@ -33,10 +33,9 @@ export const GlassPanel = styled.div`
 `;
 
 export const Dock = styled.div`
-  background: rgba(200, 220, 255, 0.5);
+  background: transparent;
   backdrop-filter: blur(10px);
   border-radius: 16px;
-  box-shadow: 0 4px 20px var(--shadow);
   padding: 15px;
   display: flex;
   justify-content: center;
@@ -44,20 +43,6 @@ export const Dock = styled.div`
   margin: 0 auto;
   max-width: 80%;
   position: relative;
-  border: 1px solid var(--highlight);
-  
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 50%;
-    background: linear-gradient(to bottom, var(--highlight), transparent);
-    border-radius: 16px 16px 0 0;
-    pointer-events: none;
-  }
-  
   @media (max-width: 768px) {
     max-width: 95%;
   }
@@ -148,27 +133,29 @@ export const GlassTextArea = styled.textarea`
 `;
 
 export const NavBar = styled.nav`
-  background: rgba(200, 220, 255, 0.5);
-  backdrop-filter: blur(10px);
-  border-radius: 0 0 16px 16px;
-  box-shadow: 0 4px 20px var(--shadow);
-  padding: 15px 0;
+  background: linear-gradient(180deg, rgba(200,220,255,0.85) 60%, rgba(180,210,255,0.7) 100%);
+  backdrop-filter: blur(14px) brightness(1.08);
+  border-radius: 0 0 24px 24px;
+  box-shadow: 0 6px 32px 0 var(--shadow), 0 1.5px 0 0 #fff8 inset;
+  padding: 22px 0 18px 0;
   color: white;
   position: relative;
   z-index: 100;
-  border: 1px solid var(--highlight);
+  border: 1.5px solid var(--highlight);
   border-top: none;
-
+  border-bottom: 2.5px solid #b0e0ff;
+  box-sizing: border-box;
   &::before {
     content: '';
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
-    height: 50%;
-    background: linear-gradient(to bottom, var(--highlight), transparent);
-    border-radius: 0 0 0 0;
+    height: 60%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.45) 0%, transparent 100%);
+    border-radius: 0 0 24px 24px;
     pointer-events: none;
+    z-index: 1;
   }
 `;
 
@@ -186,35 +173,97 @@ export const NavContainer = styled.div`
 `;
 
 export const NavBrand = styled.h1`
-  font-family: 'Lucida Grande', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  font-size: 24px;
+  font-family: 'Segoe UI', 'Frutiger', 'Helvetica Neue', Arial, sans-serif;
+  font-size: 2.3rem;
   margin: 0;
-  color: white;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-  
+  color: #fff !important;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-shadow:
+    0 1.5px 4px #b0e0ff44,
+    0 1px 0 #fff,
+    0 0 8px #7dc5ff33,
+    0 0 2px #000,
+    0 0 1.5px #000;
+  filter: drop-shadow(0 1.5px 4px #b0e0ff33);
+  position: relative;
+  z-index: 2;
+  background: none;
+  -webkit-background-clip: unset;
+  -webkit-text-fill-color: unset;
+  background-clip: unset;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
   @media (max-width: 480px) {
-    font-size: 20px;
+    font-size: 1.5rem;
+  }
+  &::after {
+    content: '';
+    display: block;
+    height: 8px;
+    width: 60%;
+    margin: 0 auto;
+    background: linear-gradient(90deg, #fff8 0%, #b0e0ff33 100%);
+    border-radius: 50%;
+    opacity: 0.6;
+    filter: blur(1.5px);
+    margin-top: -10px;
   }
 `;
 
 export const NavLinks = styled.div`
   display: flex;
-  gap: 20px;
-  
+  gap: 32px;
+  align-items: center;
   @media (max-width: 768px) {
-    gap: 15px;
+    gap: 18px;
   }
 `;
 
 export const NavLink = styled.a`
-  color: white;
-  font-family: 'Lucida Grande', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  padding: 5px 10px;
-  border-radius: 8px;
-  transition: all 0.3s ease;
-  
-  &:hover {
-    background-color: rgba(255, 255, 255, 0.2);
+  color: #fff !important;
+  text-decoration: none !important;
+  font-family: 'Segoe UI', 'Frutiger', 'Helvetica Neue', Arial, sans-serif;
+  padding: 9px 26px;
+  border-radius: 22px;
+  font-size: 1.12rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  margin: 0 2px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.18) 0%, rgba(180,210,255,0.13) 100%);
+  box-shadow: 0 1.5px 8px #b0e0ff33;
+  transition: all 0.22s cubic-bezier(.4,2,.6,1), box-shadow 0.18s;
+  position: relative;
+  z-index: 2;
+  border: 1.2px solid transparent;
+  text-shadow:
+    0 1px 2px #b0e0ff44,
+    0 0 2px #000,
+    0 0 1.5px #000;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  &:hover, &:focus {
+    background: linear-gradient(180deg, #fff 0%, #eafdff 100%);
+    color: #fff !important;
+    box-shadow: 0 2px 16px #7dc5ff99, 0 0 0 4px #3ec6ff88;
+    border: 2.5px solid #3ec6ff;
+    text-shadow:
+      0 2px 8px #7dc5ff33,
+      0 0 4px #000,
+      0 0 2px #000;
+    text-decoration: none !important;
+  }
+  &.active {
+    background: linear-gradient(180deg, #fff 0%, #eafdff 100%);
+    color: #fff !important;
+    box-shadow: 0 2px 24px #7dc5ff44, 0 0 0 6px #3ec6ff99;
+    border: 2.5px solid #3ec6ff;
+    text-shadow:
+      0 2px 12px #7dc5ff33,
+      0 0 6px #000,
+      0 0 3px #000;
+    font-weight: 700;
+    text-decoration: none !important;
   }
 `;
 

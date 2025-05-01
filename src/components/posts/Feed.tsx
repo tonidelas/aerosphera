@@ -63,10 +63,30 @@ interface Like {
   count?: number;
 }
 
+const FEED_BG_KEY = 'feedBackgroundImage';
+
 const Feed: React.FC = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [feedBg, setFeedBg] = useState<string | null>(null);
+
+  useEffect(() => {
+    const savedBg = localStorage.getItem(FEED_BG_KEY);
+    if (savedBg) setFeedBg(savedBg);
+    else setFeedBg(null);
+  }, []);
+
+  useEffect(() => {
+    if (feedBg) {
+      document.body.style.background = `url(${feedBg}) center/cover no-repeat fixed`;
+    } else {
+      document.body.style.background = 'linear-gradient(to bottom, #BADFFF, #E2E8F0)';
+    }
+    return () => {
+      document.body.style.background = 'linear-gradient(to bottom, #BADFFF, #E2E8F0)';
+    };
+  }, [feedBg]);
 
   const fetchPosts = async () => {
     try {
@@ -214,33 +234,40 @@ const Feed: React.FC = () => {
   }
 
   return (
-    <FeedContainer>
-      <CreatePost onPostCreated={fetchPosts} />
-      
-      {posts.length > 0 ? (
-        posts.map(post => (
-          <Post
-            key={post.id}
-            id={post.id}
-            content={post.content}
-            image_url={post.image_url}
-            user_id={post.user_id}
-            username={post.profiles.username}
-            avatar_url={post.profiles.avatar_url}
-            likes_count={post.likes_count}
-            is_liked={post.is_liked}
-            onLike={handleLike}
-            currentUserId={currentUserId}
-            onDelete={fetchPosts}
-            created_at={post.created_at}
-          />
-        ))
-      ) : (
-        <EmptyFeed>
-          No posts yet. Be the first to share something!
-        </EmptyFeed>
-      )}
-    </FeedContainer>
+    <div
+      style={{
+        minHeight: '100vh',
+        transition: 'background 0.3s',
+      }}
+    >
+      <FeedContainer>
+        <CreatePost onPostCreated={fetchPosts} />
+        
+        {posts.length > 0 ? (
+          posts.map(post => (
+            <Post
+              key={post.id}
+              id={post.id}
+              content={post.content}
+              image_url={post.image_url}
+              user_id={post.user_id}
+              username={post.profiles.username}
+              avatar_url={post.profiles.avatar_url}
+              likes_count={post.likes_count}
+              is_liked={post.is_liked}
+              onLike={handleLike}
+              currentUserId={currentUserId}
+              onDelete={fetchPosts}
+              created_at={post.created_at}
+            />
+          ))
+        ) : (
+          <EmptyFeed>
+            No posts yet. Be the first to share something!
+          </EmptyFeed>
+        )}
+      </FeedContainer>
+    </div>
   );
 };
 
