@@ -21,35 +21,6 @@ const CreatePostContainer = styled.div`
   }
 `;
 
-const TextArea = styled.textarea`
-  width: 100%;
-  min-height: 100px;
-  padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  margin-bottom: 12px;
-  resize: vertical;
-  font-family: inherit;
-  
-  @media (max-width: 480px) {
-    min-height: 80px;
-    padding: 10px;
-    font-size: 0.95rem;
-  }
-`;
-
-const ImagePreview = styled.img`
-  max-width: 100%;
-  max-height: 300px;
-  margin-bottom: 12px;
-  border-radius: 4px;
-  
-  @media (max-width: 480px) {
-    max-height: 200px;
-    margin-bottom: 10px;
-  }
-`;
-
 const ButtonContainer = styled.div`
   display: flex;
   flex-wrap: wrap;
@@ -76,30 +47,6 @@ const Button = styled.button`
   &:disabled {
     background: #ccc;
     cursor: not-allowed;
-  }
-  
-  @media (max-width: 480px) {
-    padding: 8px 12px;
-    font-size: 0.9rem;
-    margin-right: 0;
-  }
-`;
-
-const FileInput = styled.input`
-  display: none;
-`;
-
-const FileLabel = styled.label`
-  background: #6c757d;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 4px;
-  cursor: pointer;
-  margin-right: 8px;
-  
-  &:hover {
-    background: #5a6268;
   }
   
   @media (max-width: 480px) {

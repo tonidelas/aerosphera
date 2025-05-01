@@ -590,29 +590,4 @@ export const Card = styled.div<CardProps>`
   @media (max-width: 480px) {
     padding: 12px;
   }
-`;
-
-const BackgroundOptions = styled.div`
-  display: flex;
-  gap: 8px;
-`;
-
-interface BackgroundOptionProps {
-  bg: string;
-  $selected: boolean;
-}
-
-const BackgroundOption = styled.div<BackgroundOptionProps>`
-  width: 30px;
-  height: 30px;
-  border-radius: 5px;
-  background: ${props => props.bg};
-  cursor: pointer;
-  border: ${props => props.$selected ? '2px solid var(--accent)' : '1px solid var(--highlight)'};
-  box-shadow: ${props => props.$selected ? '0 0 5px var(--accent)' : 'none'};
-  transition: transform 0.2s ease;
-  
-  &:hover {
-    transform: scale(1.1);
-  }
 `; 

@@ -11,9 +11,6 @@ import {
   WindowButton,
   WindowTitle,
   WindowContent,
-  ProfileHeader,
-  ProfileImage,
-  ProfileInfo,
   AquaButton,
   Card,
   Grid,
@@ -21,36 +18,10 @@ import {
   Tab,
   TabsHeader,
   TabContainer,
-  TabContent,
   Divider,
   GlassInput
 } from '../common/StyledComponents';
 import SimpleEditor, { SimpleEditorHandle } from '../common/SimpleEditor';
-
-const ProfileActions = styled.div`
-  display: flex;
-  gap: 10px;
-  margin-top: 10px;
-`;
-
-const PhotoActions = styled(ProfileActions)`
-  margin-top: 15px;
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  
-  ${AquaButton} {
-    flex: 1;
-    min-width: 100px;
-    height: 36px;
-    padding: 0 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-  }
-`;
 
 const BioTextarea = styled.textarea`
   width: 100%;
@@ -123,14 +94,6 @@ const ProfilePhoto = styled.img`
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 `;
 
-const RemoveButton = styled(AquaButton)`
-  background: #ff6b6b;
-  
-  &:hover {
-    background: #ff5252;
-  }
-`;
-
 // Aqua-inspired colors
 const CARD_BACKGROUNDS = [
   'linear-gradient(135deg, #F5F9FF, #E4EFF7)',
@@ -160,22 +123,6 @@ interface UserProfile {
   created_at: string;
 }
 
-const NewPostForm = styled(GlassPanel)`
-  margin-bottom: 30px;
-`;
-
-const FormTitle = styled.h3`
-  color: var(--primary);
-  margin-bottom: 15px;
-`;
-
-const ButtonContainer = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 20px;
-`;
-
 const BackgroundOptions = styled.div`
   display: flex;
   gap: 8px;
@@ -196,89 +143,17 @@ const BackgroundOption = styled.div<{ $bg: string; $selected: boolean }>`
   }
 `;
 
-const PostContent = styled.div`
-  img {
-    max-width: 100%;
-    height: auto;
-    border-radius: 8px;
-  }
-`;
-
-const PostDate = styled.div`
-  font-size: 12px;
-  color: #666;
-  margin-top: 10px;
-`;
-
-const DeleteButton = styled.span`
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 24px;
-  height: 24px;
-  border-radius: 12px;
-  background: rgba(255, 90, 90, 0.8);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  
-  &:hover {
-    background: rgba(255, 50, 50, 0.9);
-  }
-`;
-
 const PostCard = styled(Card)`
   position: relative;
   transform: rotate(${props => Math.random() * 6 - 3}deg);
   transition: all 0.3s ease;
   box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.15);
   padding: 20px;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  animation: fadeIn 0.5s ease-in-out;
-  
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(20px) rotate(${props => Math.random() * 6 - 3}deg); }
-    to { opacity: 1; transform: translateY(0) rotate(${props => Math.random() * 6 - 3}deg); }
-  }
   
   &:hover {
     transform: rotate(0deg) scale(1.05);
     box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.2);
     z-index: 10;
-  }
-  
-  &:hover ${DeleteButton} {
-    opacity: 1;
-  }
-  
-  &:before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 30%;
-    right: 30%;
-    height: 15px;
-    background-color: rgba(0,0,0,0.1);
-    border-radius: 0 0 5px 5px;
-  }
-  
-  /* Add pushpin effect */
-  &:after {
-    content: '';
-    position: absolute;
-    top: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 12px;
-    height: 12px;
-    background: #FF5F57;
-    border-radius: 50%;
-    border: 1px solid rgba(0, 0, 0, 0.2);
-    box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
   }
 `;
 
@@ -332,12 +207,12 @@ const BannerActions = styled.div`
 `;
 
 const ProfileSectionContainer = styled.div`
-  background: rgba(255, 255, 255, 0.8);
-  border-radius: 0 0 12px 12px;
-  padding: 70px 20px 20px;
-  margin-top: -60px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 12px;
+  padding: 24px;
+  margin-top: -30px;
   position: relative;
-  backdrop-filter: blur(10px);
+  z-index: 5;
 `;
 
 const ProfilePhotoContainer = styled.div`
@@ -348,21 +223,6 @@ const ProfilePhotoContainer = styled.div`
   padding: 4px;
   background: white;
   z-index: 5;
-`;
-
-const ProfileHeaderActions = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 16px;
-`;
-
-const EditButton = styled(AquaButton)`
-  font-size: 13px;
-  padding: 0 12px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
 `;
 
 const IconButton = styled.button`
@@ -438,7 +298,6 @@ const Profile: React.FC = () => {
   const { userId } = useParams<{ userId?: string }>();
 
   const defaultAvatar = '/default-avatar.png';
-  const defaultBanner = '/default-banner.png';
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -603,23 +462,6 @@ const Profile: React.FC = () => {
       setUser(prev => prev ? { ...prev, avatar_url: imageUrl } : null);
     } catch (error) {
       console.error('Error uploading photo:', error);
-    }
-  };
-
-  const handleRemovePhoto = async () => {
-    if (!user) return;
-
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ avatar_url: null })
-        .eq('id', user.id);
-
-      if (error) throw error;
-
-      setUser(prev => prev ? { ...prev, avatar_url: '' } : null);
-    } catch (error) {
-      console.error('Error removing photo:', error);
     }
   };
 

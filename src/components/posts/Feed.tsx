@@ -43,7 +43,7 @@ const EmptyFeed = styled.div`
   }
 `;
 
-interface Post {
+interface PostData {
   id: string;
   content: string;
   image_url: string | null;
@@ -57,16 +57,10 @@ interface Post {
   is_liked: boolean;
 }
 
-interface Like {
-  user_id: string;
-  post_id: string;
-  count?: number;
-}
-
 const FEED_BG_KEY = 'feedBackgroundImage';
 
 const Feed: React.FC = () => {
-  const [posts, setPosts] = useState<Post[]>([]);
+  const [posts, setPosts] = useState<PostData[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [feedBg, setFeedBg] = useState<string | null>(null);
