@@ -141,8 +141,8 @@ interface UserProfile {
   avatar_url: string;
   banner_url?: string;
   created_at: string;
-  deezer_track_id?: string;
-  deezer_track_info?: DeezerTrack;
+  music_track_id?: string;
+  music_track_info?: DeezerTrack;
 }
 
 const BackgroundOptions = styled.div`
@@ -703,9 +703,9 @@ const Profile: React.FC = () => {
           }
         }
 
-        // Coerce deezer_track_id to string if it exists and is a number
-        if (profileData && typeof profileData.deezer_track_id === 'number') {
-          profileData.deezer_track_id = String(profileData.deezer_track_id);
+        // Coerce music_track_id to string if it exists and is a number
+        if (profileData && typeof profileData.music_track_id === 'number') {
+          profileData.music_track_id = String(profileData.music_track_id);
         }
         setUser(profileData);
         setNewBio(profileData?.bio || '');
@@ -921,101 +921,7 @@ const Profile: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    // Create audio element for song preview playback
-    audioRef.current = new Audio();
-    
-    // Clean up audio element on unmount
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
-      if (progressInterval.current) {
-        clearInterval(progressInterval.current);
-      }
-    };
-  }, []);
-
-  // Update audio source when user profile is loaded with a track
-  useEffect(() => {
-    if (user?.deezer_track_info?.preview && audioRef.current) {
-      try {
-        // Reset audio state
-        setIsPlaying(false);
-        setPlaybackProgress(0);
-        
-        // Set new source
-        audioRef.current.src = user.deezer_track_info.preview || '';
-        // Force load the audio to check for errors before trying to play
-        audioRef.current.load();
-        
-        audioRef.current.onended = () => {
-          setIsPlaying(false);
-          setPlaybackProgress(0);
-          if (progressInterval.current) {
-            clearInterval(progressInterval.current);
-            progressInterval.current = null;
-          }
-        };
-        
-        // Add error handler for audio loading issues
-        audioRef.current.onerror = (e) => {
-          console.error('Audio playback error:', e);
-          setIsPlaying(false);
-          // Check if there's CORS issues or other network problems
-          if (audioRef.current?.error?.code) {
-            console.error('Error code:', audioRef.current.error.code);
-          }
-        };
-      } catch (err) {
-        console.error('Error setting up audio:', err);
-        setIsPlaying(false);
-      }
-    }
-  }, [user]);
-
-  const handleTogglePlayback = useCallback(() => {
-    if (!audioRef.current || !user?.deezer_track_info?.preview) return;
-    
-    try {
-      if (isPlaying) {
-        audioRef.current.pause();
-        if (progressInterval.current) {
-          clearInterval(progressInterval.current);
-          progressInterval.current = null;
-        }
-      } else {
-        // Reload the audio source before playing to handle possible stale sources
-        audioRef.current.load();
-        const playPromise = audioRef.current.play();
-        
-        // Modern browsers return a promise from play()
-        if (playPromise !== undefined) {
-          playPromise.then(() => {
-            // Playback started successfully
-            progressInterval.current = setInterval(() => {
-              if (audioRef.current) {
-                const percentage = (audioRef.current.currentTime / audioRef.current.duration) * 100;
-                setPlaybackProgress(percentage);
-              }
-            }, 100);
-          }).catch(err => {
-            // Playback failed
-            console.error('Playback failed:', err);
-            setIsPlaying(false);
-          });
-        }
-      }
-      
-      setIsPlaying(!isPlaying);
-    } catch (err) {
-      console.error('Error during playback toggle:', err);
-      setIsPlaying(false);
-    }
-  }, [isPlaying, user]);
-
-  const searchDeezer = async (query: string) => {
+  const searchMusic = async (query: string) => {
     if (!query.trim()) return;
     setIsSearching(true);
     try {
@@ -1032,33 +938,21 @@ const Profile: React.FC = () => {
   const handleSelectTrack = async (track: DeezerTrack) => {
     if (!user) return;
     try {
-      if (!track.preview) {
-        const confirmAdd = window.confirm(
-          "This song doesn't have a playable preview. You can still add it to your profile, but you won't be able to play it. Continue?"
-        );
-        if (!confirmAdd) return;
-      }
-      // Save the selected track to the user's profile (update to use Deezer fields)
+      // Save the selected track to the user's profile
       const { error } = await supabase
         .from('profiles')
         .update({
-          deezer_track_id: String(track.id),
-          deezer_track_info: track
+          music_track_id: track.id,
+          music_track_info: track
         })
         .eq('id', user.id);
       if (error) throw error;
       setUser(prev => prev ? {
         ...prev,
-        deezer_track_id: String(track.id),
-        deezer_track_info: track
+        music_track_id: track.id,
+        music_track_info: track
       } : null);
       setShowSpotifySearch(false);
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.src = track.preview || '';
-        setPlaybackProgress(0);
-        setIsPlaying(false);
-      }
     } catch (error) {
       console.error('Error saving track to profile:', error);
     }
@@ -1070,21 +964,16 @@ const Profile: React.FC = () => {
       const { error } = await supabase
         .from('profiles')
         .update({
-          deezer_track_id: null,
-          deezer_track_info: null
+          music_track_id: null,
+          music_track_info: null
         })
         .eq('id', user.id);
       if (error) throw error;
       setUser(prev => prev ? {
         ...prev,
-        deezer_track_id: undefined,
-        deezer_track_info: undefined
+        music_track_id: undefined,
+        music_track_info: undefined
       } : null);
-      if (isPlaying && audioRef.current) {
-        audioRef.current.pause();
-        setIsPlaying(false);
-        setPlaybackProgress(0);
-      }
     } catch (error) {
       console.error('Error removing track from profile:', error);
     }
@@ -1097,34 +986,23 @@ const Profile: React.FC = () => {
     if (searchResults.length === 0 && searchQuery && !isSearching) {
       return <p style={{ textAlign: 'center', color: '#666' }}>No tracks found. Try another search.</p>;
     }
-    return searchResults.map(track => {
-      const hasPreview = !!track.preview;
-      return (
-        <SongResult
-          key={track.id}
-          onClick={() => handleSelectTrack(track)}
-          style={{
-            opacity: hasPreview ? 1 : 0.7,
-            position: 'relative'
-          }}
-        >
-          <AlbumCover
-            src={track.album.cover || '/default-album.png'}
-            alt="Album Cover"
-            style={{ width: '50px', height: '50px' }}
-          />
-          <SongInfo>
-            <SongTitle>{track.title}</SongTitle>
-            <ArtistName>{track.artist.name}</ArtistName>
-            {!hasPreview && (
-              <small style={{ color: '#ff5555', fontSize: '0.8em' }}>
-                No preview available
-              </small>
-            )}
-          </SongInfo>
-        </SongResult>
-      );
-    });
+    return searchResults.map(track => (
+      <SongResult
+        key={track.id}
+        onClick={() => handleSelectTrack(track)}
+        style={{ position: 'relative' }}
+      >
+        <AlbumCover
+          src={track.album.cover || '/default-album.png'}
+          alt="Album Cover"
+          style={{ width: '50px', height: '50px' }}
+        />
+        <SongInfo>
+          <SongTitle>{track.title}</SongTitle>
+          <ArtistName>{track.artist.name}</ArtistName>
+        </SongInfo>
+      </SongResult>
+    ));
   };
 
   if (isLoading) {
@@ -1312,36 +1190,29 @@ const Profile: React.FC = () => {
               
               {/* Deezer Song Profile Feature */}
               <ProfileMusicContainer>
-                {user.deezer_track_info ? (
+                {user.music_track_info ? (
                   <>
                     <MusicPlayer>
                       <AlbumCover
-                        src={user.deezer_track_info.album.cover || '/default-album.png'}
+                        src={user.music_track_info.album.cover || '/default-album.png'}
                         alt="Album Cover"
                       />
                       <SongInfo>
-                        <SongTitle>{user.deezer_track_info.title}</SongTitle>
-                        <ArtistName>{user.deezer_track_info.artist.name}</ArtistName>
-                        {user.deezer_track_info.preview ? (
-                          <ProgressBar>
-                            <Progress $width={playbackProgress} />
-                          </ProgressBar>
-                        ) : (
-                          <small style={{ color: '#ff5555', fontSize: '0.8em', marginTop: '8px', display: 'block' }}>
-                            No preview available
-                          </small>
-                        )}
+                        <SongTitle>{user.music_track_info.title}</SongTitle>
+                        <ArtistName>{user.music_track_info.artist.name}</ArtistName>
+                        <div style={{ marginTop: '8px' }}>
+                          {user.music_track_info.preview ? (
+                            <audio controls src={user.music_track_info.preview} style={{ width: '100%' }}>
+                              Your browser does not support the audio element.
+                            </audio>
+                          ) : (
+                            <small style={{ color: '#ff5555', fontSize: '0.8em' }}>
+                              No preview available
+                            </small>
+                          )}
+                        </div>
                       </SongInfo>
                       <PlayerControls>
-                        {user.deezer_track_info.preview ? (
-                          <PlayerButton onClick={handleTogglePlayback}>
-                            {isPlaying ? '⏸' : '▶️'}
-                          </PlayerButton>
-                        ) : (
-                          <PlayerButton disabled title="No preview available">
-                            🔇
-                          </PlayerButton>
-                        )}
                         {isCurrentUser && (
                           <PlayerButton onClick={handleRemoveTrack} title="Remove song">
                             ❌
@@ -1488,13 +1359,13 @@ const Profile: React.FC = () => {
                 <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
                   <SearchInput
                     type="text"
-                    placeholder="Search for a song..."
+                    placeholder="Search for a song (artist or title)..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && searchDeezer(searchQuery)}
+                    onKeyDown={(e) => e.key === 'Enter' && searchMusic(searchQuery)}
                   />
                   <AquaButton
-                    onClick={() => searchDeezer(searchQuery)}
+                    onClick={() => searchMusic(searchQuery)}
                     disabled={isSearching}
                     style={{ minWidth: '80px' }}
                   >
