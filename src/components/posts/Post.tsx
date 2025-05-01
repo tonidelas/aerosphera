@@ -4,9 +4,10 @@ import { supabase } from '../../utils/supabaseClient';
 import { Heart, HeartFill, ThreeDots } from 'react-bootstrap-icons';
 import { AquaButton } from '../common/StyledComponents';
 import SimpleEditor from '../common/SimpleEditor';
+import { DeezerTrack, searchDeezerTracks } from '../../utils/deezerClient';
 
 const PostContainer = styled.div<{ $background?: string }>`
-  background: ${props => props.$background || 'white'};
+  background: ${ (props: { $background?: string }) => props.$background || 'white'};
   border-radius: 8px;
   padding: 16px;
   margin-bottom: 16px;
@@ -48,7 +49,13 @@ const Username = styled.span`
 const PostContent = styled.div`
   margin-bottom: 12px;
   word-break: break-word;
-  
+  * {
+    word-break: break-word;
+  }
+  p {
+    margin: 0 0 10px 0;
+  }
+
   @media (max-width: 480px) {
     font-size: 0.95rem;
   }
@@ -71,6 +78,70 @@ const PostImage = styled.img`
   }
 `;
 
+const PostMusicContainer = styled.div`
+  margin-top: 15px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+`;
+
+const MusicPlayer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+`;
+
+const AlbumCover = styled.img`
+  width: 50px;
+  height: 50px;
+  border-radius: 4px;
+  object-fit: cover;
+  flex-shrink: 0;
+`;
+
+const SongInfo = styled.div`
+  flex: 1;
+  min-width: 0; 
+`;
+
+const SongTitle = styled.h4`
+  margin: 0 0 4px 0;
+  font-weight: 600;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.9em;
+`;
+
+const ArtistName = styled.p`
+  margin: 0;
+  font-size: 0.8em;
+  color: #666;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const AudioPlayerStyled = styled.audio`
+  width: 100%;
+  height: 35px; 
+  margin-top: 8px;
+  &::-webkit-media-controls-panel {
+    background-color: rgba(255, 255, 255, 0.8);
+    border-radius: 4px;
+  }
+  &::-webkit-media-controls-play-button,
+  &::-webkit-media-controls-timeline,
+  &::-webkit-media-controls-current-time-display,
+  &::-webkit-media-controls-time-remaining-display,
+  &::-webkit-media-controls-mute-button,
+  &::-webkit-media-controls-volume-slider {
+    color: #333;
+  }
+`;
+
 const PostFooter = styled.div`
   display: flex;
   align-items: center;
@@ -88,7 +159,7 @@ const LikeButton = styled.button<LikeButtonProps>`
   display: flex;
   align-items: center;
   gap: 4px;
-  color: ${props => props.$liked ? '#ff4757' : '#333'};
+  color: ${ (props: LikeButtonProps) => props.$liked ? '#ff4757' : '#333'};
   padding: 5px 10px;
   border-radius: 20px;
   transition: background 0.2s ease;
@@ -155,6 +226,8 @@ interface PostProps {
   onDelete: () => void;
   created_at: string;
   background?: string;
+  music_track_id?: string;
+  music_track_info?: DeezerTrack;
 }
 
 const formatDate = (dateString: string) => {
@@ -182,7 +255,9 @@ const Post: React.FC<PostProps> = ({
   currentUserId,
   onDelete,
   created_at,
-  background
+  background,
+  music_track_id,
+  music_track_info
 }) => {
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [editing, setEditing] = React.useState(false);
@@ -192,6 +267,7 @@ const Post: React.FC<PostProps> = ({
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
   const editorRef = React.useRef<any>(null);
   const menuRef = React.useRef<HTMLDivElement>(null);
+  const [localTrackInfo, setLocalTrackInfo] = React.useState(music_track_info);
 
   React.useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -208,6 +284,36 @@ const Post: React.FC<PostProps> = ({
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [menuOpen]);
+
+  React.useEffect(() => {
+    if (localTrackInfo && !localTrackInfo.preview) {
+      const refresh = async () => {
+        const query = `${localTrackInfo.title} ${localTrackInfo.artist.name}`;
+        const results = await searchDeezerTracks(query);
+        if (results.length > 0) {
+          const match = results.find(track =>
+            track.title.toLowerCase() === localTrackInfo.title.toLowerCase() &&
+            track.artist.name.toLowerCase() === localTrackInfo.artist.name.toLowerCase()
+          ) || results[0];
+          setLocalTrackInfo(match);
+        }
+      };
+      refresh();
+    }
+  }, [localTrackInfo]);
+
+  const handleAudioError = React.useCallback(async () => {
+    if (!localTrackInfo) return;
+    const query = `${localTrackInfo.title} ${localTrackInfo.artist.name}`;
+    const results = await searchDeezerTracks(query);
+    if (results.length > 0) {
+      const match = results.find(track =>
+        track.title.toLowerCase() === localTrackInfo.title.toLowerCase() &&
+        track.artist.name.toLowerCase() === localTrackInfo.artist.name.toLowerCase()
+      ) || results[0];
+      setLocalTrackInfo(match);
+    }
+  }, [localTrackInfo]);
 
   const handleEdit = () => {
     setMenuOpen(false);
@@ -320,9 +426,37 @@ const Post: React.FC<PostProps> = ({
         )}
       </PostHeader>
       
-      <PostContent>{content}</PostContent>
+      <PostContent dangerouslySetInnerHTML={{ __html: content }} />
       
       {image_url && <PostImage src={image_url} alt="Post content" />}
+      
+      {localTrackInfo && (
+        <PostMusicContainer>
+          <MusicPlayer>
+            <AlbumCover
+              src={localTrackInfo.album?.cover || '/default-album.png'}
+              alt="Album Cover"
+            />
+            <SongInfo>
+              <SongTitle>{localTrackInfo.title}</SongTitle>
+              <ArtistName>{localTrackInfo.artist?.name || 'Unknown Artist'}</ArtistName>
+              {localTrackInfo.preview ? (
+                <AudioPlayerStyled
+                  controls
+                  src={localTrackInfo.preview}
+                  onError={handleAudioError}
+                >
+                  Your browser does not support the audio element.
+                </AudioPlayerStyled>
+              ) : (
+                <small style={{ color: '#888', fontSize: '0.75em', display: 'block', marginTop: '5px' }}>
+                  Preview not available
+                </small>
+              )}
+            </SongInfo>
+          </MusicPlayer>
+        </PostMusicContainer>
+      )}
       
       {editing && (
         <div style={{ marginTop: 12 }}>

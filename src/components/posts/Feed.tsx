@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { supabase } from '../../utils/supabaseClient';
 import Post from './Post';
 import CreatePost from './CreatePost';
+import { DeezerTrack } from '../../utils/deezerClient';
 
 const FeedContainer = styled.div`
   max-width: 600px;
@@ -50,6 +51,8 @@ interface PostData {
   user_id: string;
   created_at: string;
   background?: string;
+  music_track_id?: string;
+  music_track_info?: DeezerTrack;
   profiles: {
     username: string;
     avatar_url: string | null;
@@ -120,7 +123,7 @@ const Feed: React.FC = () => {
       }
       
       // Get user information for each post
-      const formattedPosts = await Promise.all(postsData.map(async post => {
+      const formattedPosts = await Promise.all(postsData.map(async (post: any) => {
         // Fetch the profile information for this post
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
@@ -128,17 +131,14 @@ const Feed: React.FC = () => {
           .eq('id', post.user_id)
           .single();
           
-        if (profileError) {
-          console.error('Error fetching profile for post:', profileError);
-          return {
-            ...post,
-            profiles: {
-              username: 'Unknown',
-              avatar_url: null
-            },
-            likes_count: 0,
-            is_liked: false
-          };
+        let profileInfo = {
+          username: 'Unknown',
+          avatar_url: null
+        };
+        if (!profileError && profileData) {
+          profileInfo = profileData;
+        } else if (profileError) {
+           console.error('Error fetching profile for post:', post.id, profileError);
         }
         
         // Get likes count
@@ -158,27 +158,25 @@ const Feed: React.FC = () => {
           try {
             const { data: likeData, error: likeError } = await supabase
               .from('likes')
-              .select('*')
+              .select('id')
               .eq('post_id', post.id)
-              .eq('user_id', userId);
+              .eq('user_id', userId)
+              .limit(1);
               
             if (!likeError && likeData && likeData.length > 0) {
               isLiked = true;
             }
           } catch (error) {
             console.error('Error checking like status:', error);
-            // Continue with isLiked as false
           }
         }
         
         return {
           ...post,
-          profiles: {
-            username: profileData?.username || 'Unknown',
-            avatar_url: profileData?.avatar_url
-          },
+          profiles: profileInfo,
           likes_count: likesCount,
-          is_liked: isLiked
+          is_liked: isLiked,
+          music_track_info: typeof post.music_track_info === 'string' ? JSON.parse(post.music_track_info) : post.music_track_info
         };
       }));
       
@@ -200,7 +198,7 @@ const Feed: React.FC = () => {
       const userId = user.data.user?.id;
       if (!userId) throw new Error('Not authenticated');
 
-      const post = posts.find(p => p.id === postId);
+      const post = posts.find((p: PostData) => p.id === postId);
       if (!post) return;
 
       if (post.is_liked) {
@@ -239,7 +237,7 @@ const Feed: React.FC = () => {
         <CreatePost onPostCreated={fetchPosts} />
         
         {posts.length > 0 ? (
-          posts.map(post => (
+          posts.map((post: PostData) => (
             <Post
               key={post.id}
               id={post.id}
@@ -255,6 +253,8 @@ const Feed: React.FC = () => {
               onDelete={fetchPosts}
               created_at={post.created_at}
               background={post.background}
+              music_track_id={post.music_track_id}
+              music_track_info={post.music_track_info}
             />
           ))
         ) : (

@@ -3,6 +3,148 @@ import styled from 'styled-components';
 import { supabase } from '../../utils/supabaseClient';
 import { uploadImage } from '../../utils/cloudinaryUtils';
 import SimpleEditor, { SimpleEditorHandle } from '../common/SimpleEditor';
+// Import Deezer related utilities and types
+import { searchDeezerTracks, DeezerTrack } from '../../utils/deezerClient';
+// Import common styled components (assuming they exist and are styled similarly to Profile.tsx)
+import {
+  AquaButton,
+  GlassInput,
+} from '../common/StyledComponents';
+
+// Reuse or adapt styled components from Profile.tsx or create new ones
+// Define Modal and Search components locally
+const SearchModal = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+`;
+
+const SearchContent = styled.div`
+  background: white;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  
+  @media (max-width: 480px) {
+    width: 95%;
+    padding: 16px;
+    max-height: 80vh;
+  }
+`;
+
+const SearchInput = styled(GlassInput)`
+  width: 100%;
+  margin-bottom: 20px;
+`;
+
+const SearchResults = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-right: 5px;
+  
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+  }
+  
+  @media (max-width: 480px) {
+    max-height: 50vh;
+    gap: 8px;
+  }
+`;
+
+const SongResult = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  
+  &:hover {
+    background: rgba(0, 0, 0, 0.05);
+  }
+  
+  @media (max-width: 480px) {
+    padding: 8px;
+    gap: 8px;
+  }
+`;
+
+const AlbumCover = styled.img`
+  width: 50px;
+  height: 50px;
+  border-radius: 5px;
+  object-fit: cover;
+`;
+
+const SongInfo = styled.div`
+  flex: 1;
+  min-width: 0; /* Prevent flex item from overflowing */
+`;
+
+const SongTitle = styled.h4`
+  margin: 0 0 3px 0;
+  font-weight: 600;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.95em;
+`;
+
+const ArtistName = styled.p`
+  margin: 0;
+  font-size: 0.85em;
+  color: #666;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+// Component for displaying selected track preview
+const SelectedTrackPreview = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 6px;
+  margin-top: 10px;
+`;
+
+const RemoveTrackButton = styled.button`
+  background: none;
+  border: none;
+  color: #ff4757;
+  cursor: pointer;
+  font-size: 1.2em;
+  padding: 5px;
+`;
 
 const CreatePostContainer = styled.div`
   background: white;
@@ -121,17 +263,69 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const editorRef = useRef<SimpleEditorHandle>(null);
 
+  // State for song search modal
+  const [showSongSearch, setShowSongSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<DeezerTrack[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [selectedTrack, setSelectedTrack] = useState<DeezerTrack | null>(null);
+
+  const searchMusic = async (query: string) => {
+    if (!query.trim()) return;
+    setIsSearching(true);
+    try {
+      const results = await searchDeezerTracks(query);
+      setSearchResults(results);
+    } catch (error) {
+      console.error('Error searching Deezer:', error);
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleSelectTrack = (track: DeezerTrack) => {
+    setSelectedTrack(track);
+    setShowSongSearch(false);
+    setSearchQuery(''); // Reset search
+    setSearchResults([]);
+  };
+
+  const renderSearchResults = () => {
+    if (isSearching) {
+      return <p style={{ textAlign: 'center', color: '#666' }}>Searching...</p>;
+    }
+    if (searchResults.length === 0 && searchQuery && !isSearching) {
+      return <p style={{ textAlign: 'center', color: '#666' }}>No tracks found.</p>;
+    }
+    return searchResults.map(track => (
+      <SongResult
+        key={track.id}
+        onClick={() => handleSelectTrack(track)}
+      >
+        <AlbumCover
+          src={track.album.cover || '/default-album.png'}
+          alt="Album Cover"
+        />
+        <SongInfo>
+          <SongTitle>{track.title}</SongTitle>
+          <ArtistName>{track.artist.name}</ArtistName>
+        </SongInfo>
+      </SongResult>
+    ));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editorRef.current) return;
     const { html, raw } = editorRef.current.getContent();
     const image = editorRef.current.getImage();
     
-    // Check if either text or image is provided
-    if (!raw.trim() && !image) {
-      setStatusMessage({ 
-        text: 'Please enter some text or add an image to create a post', 
-        isError: true 
+    // Check if either text, image, or song is provided
+    if (!raw.trim() && !image && !selectedTrack) {
+      setStatusMessage({
+        text: 'Please enter text, add an image, or select a song snippet to create a post',
+        isError: true
       });
       setTimeout(() => setStatusMessage(null), 5000);
       return;
@@ -142,8 +336,9 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
     setUploadProgress(null);
     
     try {
-      const user = supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+      const userResult = await supabase.auth.getUser(); // Changed to await
+      if (!userResult.data.user) throw new Error('Not authenticated');
+      const userId = userResult.data.user.id;
 
       let imageUrl = null;
       if (image) {
@@ -179,21 +374,24 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
             content: html,
             image_url: imageUrl,
             background: selectedBackground,
-            user_id: (await user).data.user?.id
+            user_id: userId, // Use userId directly
+            music_track_id: selectedTrack ? selectedTrack.id : null, // Add track ID
+            music_track_info: selectedTrack ? selectedTrack : null   // Add track info
           }
         ]);
 
       if (error) throw error;
 
       editorRef.current.reset();
+      setSelectedTrack(null); // Reset selected track
       setStatusMessage({ text: 'Post created successfully!', isError: false });
       setTimeout(() => setStatusMessage(null), 3000);
       onPostCreated();
     } catch (error) {
       console.error('Error creating post:', error);
-      setStatusMessage({ 
-        text: 'Failed to create post. Please try again.', 
-        isError: true 
+      setStatusMessage({
+        text: 'Failed to create post. Please try again.',
+        isError: true
       });
     } finally {
       setIsSubmitting(false);
@@ -204,27 +402,56 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
     <CreatePostContainer>
       <form onSubmit={handleSubmit}>
         <SimpleEditor ref={editorRef} placeholder="What's on your mind?" />
-        <div style={{ marginTop: '10px' }}>
-          <small style={{ color: '#666', display: 'block', marginBottom: '5px' }}>Choose background color:</small>
-          <BackgroundOptions>
-            {CARD_BACKGROUNDS.map((bg, index) => (
-              <BackgroundOption 
-                key={index}
-                $bg={bg}
-                $selected={selectedBackground === bg}
-                onClick={() => setSelectedBackground(bg)}
-              />
-            ))}
-          </BackgroundOptions>
+
+        {/* Selected Track Preview */}
+        {selectedTrack && (
+          <SelectedTrackPreview>
+             <AlbumCover
+              src={selectedTrack.album.cover || '/default-album.png'}
+              alt="Album Cover"
+            />
+            <SongInfo style={{ flexGrow: 1 }}>
+              <SongTitle>{selectedTrack.title}</SongTitle>
+              <ArtistName>{selectedTrack.artist.name}</ArtistName>
+            </SongInfo>
+            <RemoveTrackButton onClick={() => setSelectedTrack(null)} title="Remove song">
+              ❌
+            </RemoveTrackButton>
+          </SelectedTrackPreview>
+        )}
+
+        <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div>
+            <small style={{ color: '#666', display: 'block', marginBottom: '5px' }}>Choose background:</small>
+            <BackgroundOptions>
+              {CARD_BACKGROUNDS.map((bg, index) => (
+                <BackgroundOption
+                  key={index}
+                  $bg={bg}
+                  $selected={selectedBackground === bg}
+                  onClick={() => setSelectedBackground(bg)}
+                />
+              ))}
+            </BackgroundOptions>
+          </div>
+          {/* Button to add song */}
+          <AquaButton
+            type="button" // Important: Prevent form submission
+            onClick={() => setShowSongSearch(true)}
+            disabled={isSubmitting || !!selectedTrack} // Disable if already selected
+            style={{ padding: '6px 12px', fontSize: '0.9em', height: 'auto', marginTop: '10px' }}
+          >
+             {selectedTrack ? 'Song Added' : 'Add Song Snippet'}
+          </AquaButton>
         </div>
-        
+
         {uploadProgress !== null && (
           <ProgressBar>
             <ProgressFill $progress={uploadProgress} />
           </ProgressBar>
         )}
-        
-        <ButtonContainer>
+
+        <ButtonContainer style={{ marginTop: '15px', justifyContent: 'flex-end' }}> {/* Align post button to right */}
           <Button
             type="submit"
             disabled={isSubmitting}
@@ -232,13 +459,49 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
             {isSubmitting ? 'Posting...' : 'Post'}
           </Button>
         </ButtonContainer>
-        
+
         {statusMessage && (
           <StatusMessage $isError={statusMessage.isError}>
             {statusMessage.text}
           </StatusMessage>
         )}
       </form>
+
+      {/* Song Search Modal */}
+      {showSongSearch && (
+        <SearchModal>
+          <SearchContent>
+            <h3>Add a song to your post</h3>
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+              <SearchInput
+                type="text"
+                placeholder="Search Deezer (artist or title)..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && searchMusic(searchQuery)}
+              />
+              <AquaButton
+                onClick={() => searchMusic(searchQuery)}
+                disabled={isSearching}
+                style={{ minWidth: '80px' }}
+              >
+                {isSearching ? '...' : 'Search'}
+              </AquaButton>
+            </div>
+            <SearchResults>
+              {renderSearchResults()}
+            </SearchResults>
+            <div style={{ textAlign: 'right', marginTop: '20px' }}>
+              <AquaButton
+                onClick={() => setShowSongSearch(false)}
+                style={{ background: '#eee', color: '#333' }}
+              >
+                Cancel
+              </AquaButton>
+            </div>
+          </SearchContent>
+        </SearchModal>
+      )}
     </CreatePostContainer>
   );
 };
