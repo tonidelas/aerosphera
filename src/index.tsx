@@ -1,7 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter as Router } from 'react-router-dom';
 import './index.css';
+import './styles/dock-scroll.css';
 import 'react-draft-wysiwyg/dist/react-draft-wysiwyg.css';
 import './styles/rich-editor.css';
 import App from './App';
@@ -21,9 +22,9 @@ const root = ReactDOM.createRoot(
 root.render(
   <React.StrictMode>
     <StyleSheetManager shouldForwardProp={shouldForwardProp}>
-      <BrowserRouter>
+      <Router>
         <App />
-      </BrowserRouter>
+      </Router>
     </StyleSheetManager>
   </React.StrictMode>
 );

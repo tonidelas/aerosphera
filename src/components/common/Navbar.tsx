@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../../utils/supabaseClient';
 import {
@@ -43,16 +43,31 @@ const NavbarWrapper = styled.div`
 `;
 
 const DockWrapper = styled.div`
-  margin-top: 20px;
   display: flex;
   justify-content: center;
+  transition: transform 0.3s ease, opacity 0.2s ease;
+  position: relative;
+  z-index: 50;
+  margin-top: 20px;
+
+  @media (max-width: 768px) {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    z-index: 200;
+    margin-top: 0;
+  }
 `;
 
 const DockContainer = styled.div`
   max-width: 600px;
   width: 100%;
   padding: 0 10px;
-  
+  margin: 0 auto;
+  display: flex;
+  justify-content: center;
+
   @media (max-width: 480px) {
     padding: 0 5px;
   }
@@ -133,6 +148,23 @@ const ResponsiveNavLinks = styled(NavLinks)`
 `;
 
 const ResponsiveDock = styled(Dock)`
+  background: rgba(200, 220, 255, 0.5);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  box-shadow: 0 4px 20px var(--shadow);
+  border: 1px solid var(--highlight);
+  position: relative;
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(to bottom, var(--highlight), transparent);
+    border-radius: 16px 16px 0 0;
+    pointer-events: none;
+  }
   @media (max-width: 480px) {
     padding: 10px;
     gap: 10px;
@@ -152,6 +184,8 @@ const Navbar: React.FC = () => {
   const navigate = useNavigate();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
+  const lastScrollY = useRef(0);
   
   useEffect(() => {
     // Check localStorage and Supabase session
@@ -181,7 +215,33 @@ const Navbar: React.FC = () => {
     };
     
     checkAuth();
+    
+    // Reset visibility when navigating to a new page
+    setIsVisible(true);
+    lastScrollY.current = 0;
   }, [location]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      
+      if (currentScrollY > lastScrollY.current + 10) {
+        // Scrolling down - hide dock
+        setIsVisible(false);
+      } else if (currentScrollY < lastScrollY.current - 10 || currentScrollY <= 0) {
+        // Scrolling up or at the top - show dock
+        setIsVisible(true);
+      }
+      
+      lastScrollY.current = currentScrollY;
+    };
+    
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -291,7 +351,11 @@ const Navbar: React.FC = () => {
       </MobileNavLinks>
       
       {isLoggedIn && (
-        <DockWrapper>
+        <DockWrapper style={{ 
+          transform: isVisible ? 'translateY(0)' : 'translateY(100px)',
+          opacity: isVisible ? 1 : 0,
+          visibility: isVisible ? 'visible' : 'hidden'
+        }}>
           <DockContainer>
             <ResponsiveDock>
               <ResponsiveDockIcon $active={location.pathname === '/feed'} to="/feed">

@@ -1,0 +1,42 @@
+/* Hide dock on scroll */
+.sc-fhPBcz.jSfbsr {
+  position: fixed;
+  bottom: 20px;
+  left: 0;
+  right: 0;
+  transition: transform 0.3s ease, opacity 0.2s ease;
+  z-index: 990; /* Higher z-index to ensure it's above other content */
+  display: flex;
+  justify-content: center;
+}
+
+/* Ensure the dock container looks good */
+.sc-fYsHOw.sc-kRZjnb.jOEgQh.dWMcYB {
+  background: linear-gradient(to bottom, #7DC5FF, #4A8AF4);
+  border-radius: 16px;
+  padding: 12px 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(10px);
+  display: flex;
+  gap: 15px;
+}
+
+/* Apply this class when user scrolls down */
+.dock-hidden {
+  transform: translateY(100px) !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+/* Add padding to prevent content from being hidden */
+.dock-padding {
+  height: 90px;
+  width: 100%;
+}
+
+/* Make sure the dock is visible by default */
+.sc-fhPBcz {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+} 
