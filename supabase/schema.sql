@@ -4,6 +4,7 @@ CREATE TABLE profiles (
   username TEXT UNIQUE,
   bio TEXT,
   avatar_url TEXT,
+  banner_url TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
   PRIMARY KEY (id)

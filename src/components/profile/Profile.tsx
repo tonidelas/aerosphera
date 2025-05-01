@@ -155,6 +155,7 @@ interface UserProfile {
   username: string;
   bio: string;
   avatar_url: string;
+  banner_url?: string;
   created_at: string;
 }
 
@@ -298,6 +299,125 @@ const EmptyPostsMessage = styled.div`
   }
 `;
 
+// --- Banner Styles ---
+const BannerContainer = styled.div<{ $bg: string }>`
+  position: relative;
+  width: 100%;
+  height: 180px;
+  background: ${props => props.$bg};
+  border-radius: 12px 12px 0 0;
+  overflow: hidden;
+  margin-bottom: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+`;
+
+const BannerImage = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+`;
+
+const BannerActions = styled.div`
+  position: absolute;
+  bottom: 10px;
+  right: 20px;
+  display: flex;
+  gap: 8px;
+  z-index: 10;
+`;
+
+const ProfileSectionContainer = styled.div`
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 0 0 12px 12px;
+  padding: 70px 20px 20px;
+  margin-top: -60px;
+  position: relative;
+  backdrop-filter: blur(10px);
+`;
+
+const ProfilePhotoContainer = styled.div`
+  position: absolute;
+  top: -60px;
+  left: 20px;
+  border-radius: 50%;
+  padding: 4px;
+  background: white;
+  z-index: 5;
+`;
+
+const ProfileHeaderActions = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+`;
+
+const EditButton = styled(AquaButton)`
+  font-size: 13px;
+  padding: 0 12px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+`;
+
+const IconButton = styled.button`
+  background: none;
+  border: none;
+  color: var(--primary);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.2s;
+  font-size: 16px;
+  
+  &:hover {
+    background: rgba(0, 0, 0, 0.1);
+  }
+`;
+
+// Add a new LogoutButton styled component
+const LogoutButton = styled.button`
+  position: absolute;
+  top: 18px;
+  right: 24px;
+  background: white;
+  border: none;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 20;
+  transition: background 0.2s;
+  font-size: 18px;
+  color: var(--primary);
+  &:hover {
+    background: #f5f5f5;
+  }
+`;
+
+// Utility to get a random pastel color based on user id
+function getPastelColorFromId(id: string): string {
+  // Simple hash to get a number from the id
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = id.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  // Generate HSL pastel color
+  const hue = Math.abs(hash) % 360;
+  return `hsl(${hue}, 70%, 85%)`;
+}
+
 const Profile: React.FC = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -309,12 +429,15 @@ const Profile: React.FC = () => {
   const [newUsername, setNewUsername] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isCurrentUser, setIsCurrentUser] = useState(true); // Whether viewing own profile
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false); // For logout confirmation
   const editorRef = useRef<SimpleEditorHandle>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const { userId } = useParams<{ userId?: string }>();
 
   const defaultAvatar = '/default-avatar.png';
+  const defaultBanner = '/default-banner.png';
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -554,6 +677,57 @@ const Profile: React.FC = () => {
     }
   };
 
+  // --- Banner Handlers ---
+  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!user || !e.target.files?.length) return;
+    try {
+      const file = e.target.files[0];
+      const bannerUrl = await uploadImage(file);
+      console.log('Uploading banner to profile, user ID:', user.id);
+      console.log('Banner URL:', bannerUrl);
+      
+      // Update the profiles table with banner_url field
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({ banner_url: bannerUrl })
+        .eq('id', user.id)
+        .select();
+        
+      if (error) {
+        console.error('Error uploading banner:', error);
+        throw error;
+      }
+      
+      console.log('Banner update successful, response:', data);
+      setUser(prev => prev ? { ...prev, banner_url: bannerUrl } : null);
+    } catch (error) {
+      console.error('Error uploading banner:', error);
+    }
+  };
+
+  const handleRemoveBanner = async () => {
+    if (!user) return;
+    try {
+      console.log('Removing banner from profile, user ID:', user.id);
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({ banner_url: null })
+        .eq('id', user.id)
+        .select();
+        
+      if (error) {
+        console.error('Error removing banner:', error);
+        throw error;
+      }
+      
+      console.log('Banner removal successful, response:', data);
+      setUser(prev => prev ? { ...prev, banner_url: '' } : null);
+    } catch (error) {
+      console.error('Error removing banner:', error);
+    }
+  };
+
   if (isLoading) {
     return <div>Loading...</div>;
   }
@@ -573,16 +747,134 @@ const Profile: React.FC = () => {
           </WindowButtons>
           <WindowTitle>Profile</WindowTitle>
         </WindowTitleBar>
-        <WindowContent>
-          <ProfileHeader>
-            <div>
+        <WindowContent style={{ position: 'relative' }}>
+          {isCurrentUser && (
+            <>
+              <LogoutButton onClick={() => setShowLogoutConfirm(true)} title="Logout">
+                <span role="img" aria-label="logout">⏻</span>
+              </LogoutButton>
+              {showLogoutConfirm && (
+                <div style={{
+                  position: 'fixed',
+                  top: 0,
+                  left: 0,
+                  width: '100vw',
+                  height: '100vh',
+                  background: 'rgba(0,0,0,0.3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 1000
+                }}>
+                  <div style={{
+                    background: 'white',
+                    borderRadius: '10px',
+                    padding: '32px 24px',
+                    boxShadow: '0 4px 24px rgba(0,0,0,0.15)',
+                    minWidth: '300px',
+                    textAlign: 'center'
+                  }}>
+                    <h3 style={{ marginBottom: '18px' }}>Are you sure you want to log out?</h3>
+                    <div style={{ display: 'flex', justifyContent: 'center', gap: '16px' }}>
+                      <AquaButton onClick={handleLogout} style={{ minWidth: '80px' }}>Yes</AquaButton>
+                      <AquaButton onClick={() => setShowLogoutConfirm(false)} style={{ minWidth: '80px', background: '#eee', color: '#333' }}>Cancel</AquaButton>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+          {/* --- Profile Banner --- */}
+          <div style={{ position: 'relative' }}>
+            <BannerContainer $bg={user.banner_url ? 'transparent' : getPastelColorFromId(user.id)}>
+              {user.banner_url && (
+                <BannerImage
+                  src={user.banner_url}
+                  alt="Profile Banner"
+                />
+              )}
+              {/* Banner actions */}
+              {isCurrentUser && (
+                <BannerActions>
+                  <input
+                    type="file"
+                    accept="image/*,image/gif"
+                    onChange={handleBannerUpload}
+                    style={{ display: 'none' }}
+                    ref={bannerInputRef}
+                  />
+                  <AquaButton 
+                    onClick={() => bannerInputRef.current?.click()} 
+                    style={{ 
+                      height: '32px', 
+                      padding: '0 10px', 
+                      fontSize: '12px',
+                      whiteSpace: 'nowrap',
+                      minWidth: 'auto',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {user.banner_url ? 'Change' : 'Add'}
+                  </AquaButton>
+                  {user.banner_url && (
+                    <AquaButton 
+                      onClick={handleRemoveBanner} 
+                      style={{ 
+                        height: '32px', 
+                        padding: '0 10px',
+                        fontSize: '12px',
+                        whiteSpace: 'nowrap',
+                        minWidth: 'auto',
+                        background: '#ff6b6b',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Remove
+                    </AquaButton>
+                  )}
+                </BannerActions>
+              )}
+            </BannerContainer>
+          </div>
+
+          {/* --- Profile Section --- */}
+          <ProfileSectionContainer>
+            {/* Profile Photo Container (overlaps banner) */}
+            <ProfilePhotoContainer>
               {user.avatar_url ? (
                 <ProfilePhoto src={user.avatar_url} alt="Profile" />
               ) : (
                 <ProfilePhoto src={defaultAvatar} alt="Profile" />
               )}
-            </div>
-            <ProfileInfo>
+              
+              {/* Photo edit overlay - only shown for current user */}
+              {isCurrentUser && (
+                <div style={{ 
+                  position: 'absolute', 
+                  bottom: '0', 
+                  right: '0', 
+                  background: 'white',
+                  borderRadius: '50%',
+                  padding: '4px',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                  cursor: 'pointer'
+                }}>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoUpload}
+                    style={{ display: 'none' }}
+                    ref={fileInputRef}
+                  />
+                  <IconButton onClick={() => fileInputRef.current?.click()} title="Change photo">
+                    ✎
+                  </IconButton>
+                </div>
+              )}
+            </ProfilePhotoContainer>
+
+            {/* Profile Info */}
+            <div style={{ paddingLeft: '10px' }}>
               {isCurrentUser && isEditingUsername ? (
                 <UsernameWrapper>
                   <UsernameInput
@@ -590,7 +882,7 @@ const Profile: React.FC = () => {
                     value={newUsername}
                     onChange={(e) => setNewUsername(e.target.value)}
                   />
-                  <AquaButton onClick={handleSaveUsername} style={{ height: '36px', padding: '0 12px' }}>
+                  <AquaButton onClick={handleSaveUsername} style={{ height: '34px', padding: '0 12px' }}>
                     Save
                   </AquaButton>
                 </UsernameWrapper>
@@ -598,7 +890,9 @@ const Profile: React.FC = () => {
                 <UsernameWrapper>
                   <h2>{user.username}</h2>
                   {isCurrentUser && (
-                    <EditIcon onClick={() => setIsEditingUsername(true)}>✎</EditIcon>
+                    <IconButton onClick={() => setIsEditingUsername(true)} title="Edit username">
+                      ✎
+                    </IconButton>
                   )}
                 </UsernameWrapper>
               )}
@@ -620,31 +914,10 @@ const Profile: React.FC = () => {
                   )}
                 </BioText>
               )}
-              {isCurrentUser && (
-                <PhotoActions>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handlePhotoUpload}
-                    style={{ display: 'none' }}
-                    id="photo-upload"
-                    ref={fileInputRef}
-                  />
-                  <AquaButton onClick={() => fileInputRef.current?.click()}>
-                    Change Photo
-                  </AquaButton>
-                  <RemoveButton onClick={handleRemovePhoto}>
-                    Remove Photo
-                  </RemoveButton>
-                  <AquaButton onClick={handleLogout}>
-                    Logout
-                  </AquaButton>
-                </PhotoActions>
-              )}
-            </ProfileInfo>
-          </ProfileHeader>
+            </div>
+          </ProfileSectionContainer>
 
-          <TabsHeader>
+          <TabsHeader style={{ marginTop: '20px' }}>
             <Tab
               $active={activeTab === 'posts'}
               onClick={() => setActiveTab('posts')}
