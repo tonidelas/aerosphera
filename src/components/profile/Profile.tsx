@@ -132,6 +132,8 @@ interface Post {
   image_url?: string | null;
   user_id: string;
   created_at?: string;
+  music_track_id?: string;
+  music_track_info?: DeezerTrack;
 }
 
 interface UserProfile {
@@ -630,6 +632,32 @@ const EditPencil = () => (
   }}>✎</span>
 );
 
+const PostMusicContainer = styled.div`
+  margin-top: 15px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+`;
+
+const AudioPlayerStyled = styled.audio`
+  width: 100%;
+  height: 35px;
+  margin-top: 8px;
+  &::-webkit-media-controls-panel {
+    background-color: rgba(255, 255, 255, 0.8);
+    border-radius: 4px;
+  }
+  &::-webkit-media-controls-play-button,
+  &::-webkit-media-controls-timeline,
+  &::-webkit-media-controls-current-time-display,
+  &::-webkit-media-controls-time-remaining-display,
+  &::-webkit-media-controls-mute-button,
+  &::-webkit-media-controls-volume-slider {
+    color: #333;
+  }
+`;
+
 const Profile: React.FC = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -656,6 +684,8 @@ const Profile: React.FC = () => {
   const [playbackProgress, setPlaybackProgress] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const progressInterval = useRef<NodeJS.Timeout | null>(null);
+  const [selectedTrack, setSelectedTrack] = useState<DeezerTrack | null>(null);
+  const [showSongSearch, setShowSongSearch] = useState(false);
 
   const defaultAvatar = '/default-avatar.png';
 
@@ -844,11 +874,9 @@ const Profile: React.FC = () => {
   const handleAddPost = async () => {
     try {
       if (!editorRef.current || !user) return;
-      
       const { html, raw } = editorRef.current.getContent();
       const currentImage = editorRef.current.getImage();
       const currentDate = new Date().toISOString();
-
       const { data, error } = await supabase
         .from('posts')
         .insert([
@@ -856,26 +884,25 @@ const Profile: React.FC = () => {
             content: html,
             user_id: user.id,
             image_url: currentImage,
-            background: selectedBackground
+            background: selectedBackground,
+            music_track_id: selectedTrack ? selectedTrack.id : null,
+            music_track_info: selectedTrack ? selectedTrack : null
           }
         ])
         .select()
         .single();
-
       if (error) {
         console.error('Error adding post:', error);
         throw error;
       }
-
-      // Add the background, image, date, and rawContent locally instead of in the database
       const newPost = {
         ...data,
         date: currentDate,
         rawContent: raw
       };
-
       setPosts(prev => [newPost, ...prev]);
-      editorRef.current.reset(); // Reset editor
+      editorRef.current.reset();
+      setSelectedTrack(null);
     } catch (error) {
       console.error('Error adding post:', error);
     }
@@ -954,7 +981,6 @@ const Profile: React.FC = () => {
       const results = await searchDeezerTracks(query);
       setSearchResults(results);
     } catch (error) {
-      console.error('Error searching Deezer:', error);
       setSearchResults([]);
     } finally {
       setIsSearching(false);
@@ -1052,23 +1078,11 @@ const Profile: React.FC = () => {
   };
 
   const renderSearchResults = () => {
-    if (isSearching) {
-      return <p style={{ textAlign: 'center', color: '#666' }}>Searching...</p>;
-    }
-    if (searchResults.length === 0 && searchQuery && !isSearching) {
-      return <p style={{ textAlign: 'center', color: '#666' }}>No tracks found. Try another search.</p>;
-    }
+    if (isSearching) return <p style={{ textAlign: 'center', color: '#666' }}>Searching...</p>;
+    if (searchResults.length === 0 && searchQuery && !isSearching) return <p style={{ textAlign: 'center', color: '#666' }}>No tracks found.</p>;
     return searchResults.map(track => (
-      <SongResult
-        key={track.id}
-        onClick={() => handleSelectTrack(track)}
-        style={{ position: 'relative' }}
-      >
-        <AlbumCover
-          src={track.album.cover || '/default-album.png'}
-          alt="Album Cover"
-          style={{ width: '50px', height: '50px' }}
-        />
+      <SongResult key={track.id} onClick={() => { setSelectedTrack(track); setShowSongSearch(false); setSearchQuery(''); setSearchResults([]); }}>
+        <AlbumCover src={track.album.cover || '/default-album.png'} alt="Album Cover" />
         <SongInfo>
           <SongTitle>{track.title}</SongTitle>
           <ArtistName>{track.artist.name}</ArtistName>
@@ -1383,45 +1397,94 @@ const Profile: React.FC = () => {
                   <GlassPanel>
                     <h3 style={{ marginBottom: '15px', color: 'var(--primary)' }}>Create a New Post-it Note</h3>
                     <SimpleEditor ref={editorRef} />
-                    <div style={{ 
-                      display: 'flex', 
-                      justifyContent: 'space-between', 
-                      marginTop: '15px',
-                      alignItems: 'center'
-                    }}>
+                    {/* Song preview */}
+                    {selectedTrack && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(0,0,0,0.05)', borderRadius: 6, padding: 8, marginTop: 10 }}>
+                        <AlbumCover src={selectedTrack.album.cover || '/default-album.png'} alt="Album Cover" />
+                        <SongInfo style={{ flexGrow: 1 }}>
+                          <SongTitle>{selectedTrack.title}</SongTitle>
+                          <ArtistName>{selectedTrack.artist.name}</ArtistName>
+                        </SongInfo>
+                        <button onClick={() => setSelectedTrack(null)} style={{ background: 'none', border: 'none', color: '#ff4757', cursor: 'pointer', fontSize: '1.2em', padding: 5 }}>❌</button>
+                      </div>
+                    )}
+                    <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
                       <div>
-                        <small style={{ color: '#666' }}>Express yourself with a colorful note!</small>
+                        <small style={{ color: '#666', display: 'block', marginBottom: '5px' }}>Choose background:</small>
                         <BackgroundOptions>
                           {CARD_BACKGROUNDS.map((bg, index) => (
-                            <BackgroundOption 
-                              key={index}
-                              $bg={bg}
-                              $selected={selectedBackground === bg}
-                              onClick={() => setSelectedBackground(bg)}
-                            />
+                            <BackgroundOption key={index} $bg={bg} $selected={selectedBackground === bg} onClick={() => setSelectedBackground(bg)} />
                           ))}
                         </BackgroundOptions>
                       </div>
-                      <AquaButton onClick={handleAddPost} style={{ minWidth: '140px' }}>
-                        Add Post-it Note
+                      <AquaButton type="button" onClick={() => setShowSongSearch(true)} disabled={!!selectedTrack} style={{ padding: '6px 12px', fontSize: '0.9em', height: 'auto', marginTop: '10px' }}>
+                        {selectedTrack ? 'Song Added' : 'Add Song Snippet'}
                       </AquaButton>
+                      <AquaButton onClick={handleAddPost} style={{ minWidth: '140px' }}>Add Post-it Note</AquaButton>
                     </div>
+                    {/* Song Search Modal */}
+                    {showSongSearch && (
+                      <SearchModal>
+                        <SearchContent>
+                          <h3>Add a song to your post</h3>
+                          <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+                            <SearchInput type="text" placeholder="Search Deezer (artist or title)..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && searchMusic(searchQuery)} />
+                            <AquaButton onClick={() => searchMusic(searchQuery)} disabled={isSearching} style={{ minWidth: '80px' }}>{isSearching ? '...' : 'Search'}</AquaButton>
+                          </div>
+                          <SearchResults>{renderSearchResults()}</SearchResults>
+                          <div style={{ textAlign: 'right', marginTop: '20px' }}>
+                            <AquaButton onClick={() => setShowSongSearch(false)} style={{ background: '#eee', color: '#333' }}>Cancel</AquaButton>
+                          </div>
+                        </SearchContent>
+                      </SearchModal>
+                    )}
                   </GlassPanel>
                 )}
                 <Grid>
                   {posts.length > 0 ? (
                     posts.map((post, index) => (
-                      <PostCard 
-                        key={post.id} 
-                        $gradient 
-                        $hasImage={!!post.image_url}
-                        style={{
-                          background: post.background || CARD_BACKGROUNDS[index % CARD_BACKGROUNDS.length]
-                        }}
-                      >
+                      <PostCard key={post.id} $gradient $hasImage={!!post.image_url} style={{ background: post.background || CARD_BACKGROUNDS[index % CARD_BACKGROUNDS.length] }}>
                         <div dangerouslySetInnerHTML={{ __html: post.content }} />
                         {post.image_url && (
                           <img src={post.image_url} alt="Post" style={{ maxWidth: '100%', marginTop: '10px', borderRadius: '4px' }} />
+                        )}
+                        {/* Song snippet display */}
+                        {post.music_track_info && (
+                          <PostMusicContainer>
+                            <MusicPlayer>
+                              <AlbumCover src={post.music_track_info?.album?.cover || '/default-album.png'} alt="Album Cover" />
+                              <SongInfo>
+                                <SongTitle>{post.music_track_info?.title}</SongTitle>
+                                <ArtistName>{post.music_track_info?.artist?.name || 'Unknown Artist'}</ArtistName>
+                                {post.music_track_info?.preview ? (
+                                  <AudioPlayerStyled
+                                    controls
+                                    src={post.music_track_info?.preview}
+                                    onError={async () => {
+                                      const title = post.music_track_info?.title;
+                                      const artist = post.music_track_info?.artist?.name;
+                                      if (!title || !artist) return;
+                                      const query = `${title} ${artist}`;
+                                      const results = await searchDeezerTracks(query);
+                                      if (results.length > 0) {
+                                        const match = results.find(track =>
+                                          track.title.toLowerCase() === title.toLowerCase() &&
+                                          track.artist.name.toLowerCase() === artist.toLowerCase()
+                                        ) || results[0];
+                                        // Update only in local state if you want, or just let the user refresh
+                                      }
+                                    }}
+                                  >
+                                    Your browser does not support the audio element.
+                                  </AudioPlayerStyled>
+                                ) : (
+                                  <small style={{ color: '#888', fontSize: '0.75em', display: 'block', marginTop: '5px' }}>
+                                    Preview not available
+                                  </small>
+                                )}
+                              </SongInfo>
+                            </MusicPlayer>
+                          </PostMusicContainer>
                         )}
                         <Divider />
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
