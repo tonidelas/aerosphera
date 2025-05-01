@@ -1242,14 +1242,6 @@ const Profile: React.FC = () => {
                     <StatNumber>{posts.length}</StatNumber>
                     <StatLabel>Posts</StatLabel>
                   </StatItem>
-                  <StatItem>
-                    <StatNumber>0</StatNumber>
-                    <StatLabel>Followers</StatLabel>
-                  </StatItem>
-                  <StatItem>
-                    <StatNumber>0</StatNumber>
-                    <StatLabel>Following</StatLabel>
-                  </StatItem>
                 </ProfileStats>
                 
                 {isCurrentUser && (
