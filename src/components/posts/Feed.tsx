@@ -49,6 +49,7 @@ interface PostData {
   image_url: string | null;
   user_id: string;
   created_at: string;
+  background?: string;
   profiles: {
     username: string;
     avatar_url: string | null;
@@ -253,6 +254,7 @@ const Feed: React.FC = () => {
               currentUserId={currentUserId}
               onDelete={fetchPosts}
               created_at={post.created_at}
+              background={post.background}
             />
           ))
         ) : (

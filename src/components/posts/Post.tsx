@@ -5,8 +5,8 @@ import { Heart, HeartFill, ThreeDots } from 'react-bootstrap-icons';
 import { AquaButton } from '../common/StyledComponents';
 import SimpleEditor from '../common/SimpleEditor';
 
-const PostContainer = styled.div`
-  background: white;
+const PostContainer = styled.div<{ $background?: string }>`
+  background: ${props => props.$background || 'white'};
   border-radius: 8px;
   padding: 16px;
   margin-bottom: 16px;
@@ -154,6 +154,7 @@ interface PostProps {
   currentUserId: string | null;
   onDelete: () => void;
   created_at: string;
+  background?: string;
 }
 
 const formatDate = (dateString: string) => {
@@ -180,7 +181,8 @@ const Post: React.FC<PostProps> = ({
   user_id,
   currentUserId,
   onDelete,
-  created_at
+  created_at,
+  background
 }) => {
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [editing, setEditing] = React.useState(false);
@@ -261,7 +263,7 @@ const Post: React.FC<PostProps> = ({
   };
 
   return (
-    <PostContainer>
+    <PostContainer $background={background}>
       {showDeleteConfirm && (
         <div style={{
           position: 'fixed',

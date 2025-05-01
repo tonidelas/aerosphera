@@ -79,6 +79,12 @@ const UsernameWrapper = styled.div`
     font-size: 1.8em;
     word-break: break-word;
   }
+
+  @media (max-width: 480px) {
+    h2 {
+      font-size: 1.4em;
+    }
+  }
 `;
 
 const UsernameInput = styled(GlassInput)`
@@ -96,6 +102,16 @@ const ProfilePhoto = styled.img`
   object-fit: cover;
   border: 2px solid var(--accent);
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+
+  @media (max-width: 768px) {
+    width: 90px;
+    height: 90px;
+  }
+
+  @media (max-width: 480px) {
+    width: 80px;
+    height: 80px;
+  }
 `;
 
 // Aqua-inspired colors
@@ -113,7 +129,7 @@ interface Post {
   rawContent?: any;
   background: string;
   date: string;
-  image?: string | null;
+  image_url?: string | null;
   user_id: string;
   created_at?: string;
 }
@@ -214,9 +230,8 @@ const BannerActions = styled.div`
 
 const ProfileSectionContainer = styled.div`
   background: rgba(255, 255, 255, 0.9);
-  border-radius: 12px;
-  padding: 24px;
-  margin-top: -30px;
+  border-radius: 0 0 12px 12px;
+  padding: 0;
   position: relative;
   z-index: 5;
 `;
@@ -303,6 +318,11 @@ const ProfileMusicContainer = styled.div`
   &:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   }
+
+  @media (max-width: 768px) {
+    padding: 12px;
+    margin-top: 10px;
+  }
 `;
 
 const MusicPlayer = styled.div`
@@ -310,6 +330,11 @@ const MusicPlayer = styled.div`
   align-items: center;
   gap: 15px;
   position: relative;
+  
+  @media (max-width: 480px) {
+    gap: 10px;
+    flex-wrap: wrap;
+  }
 `;
 
 const AlbumCover = styled.img`
@@ -318,28 +343,56 @@ const AlbumCover = styled.img`
   border-radius: 5px;
   object-fit: cover;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  
+  @media (max-width: 480px) {
+    width: 50px;
+    height: 50px;
+  }
 `;
 
 const SongInfo = styled.div`
   flex: 1;
+  min-width: 0; /* Prevent flex item from overflowing */
+  
+  @media (max-width: 480px) {
+    width: calc(100% - 120px); /* Account for album cover + controls */
+  }
 `;
 
 const SongTitle = styled.h4`
   margin: 0 0 5px 0;
   font-weight: 600;
   color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  
+  @media (max-width: 480px) {
+    font-size: 0.9rem;
+  }
 `;
 
 const ArtistName = styled.p`
   margin: 0;
   font-size: 0.9em;
   color: #666;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  
+  @media (max-width: 480px) {
+    font-size: 0.8rem;
+  }
 `;
 
 const PlayerControls = styled.div`
   display: flex;
   align-items: center;
   gap: 10px;
+  
+  @media (max-width: 480px) {
+    gap: 5px;
+  }
 `;
 
 const PlayerButton = styled.button`
@@ -366,6 +419,12 @@ const PlayerButton = styled.button`
     opacity: 0.5;
     cursor: not-allowed;
   }
+  
+  @media (max-width: 480px) {
+    width: 32px;
+    height: 32px;
+    font-size: 0.9rem;
+  }
 `;
 
 const AddSongButton = styled(AquaButton)`
@@ -373,6 +432,13 @@ const AddSongButton = styled(AquaButton)`
   font-size: 0.9em;
   padding: 6px 12px;
   height: auto;
+  
+  @media (max-width: 480px) {
+    width: 100%;
+    margin-top: 8px;
+    font-size: 0.8em;
+    padding: 6px 8px;
+  }
 `;
 
 const SearchModal = styled.div`
@@ -397,11 +463,21 @@ const SearchContent = styled.div`
   overflow-y: auto;
   padding: 24px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  
+  @media (max-width: 480px) {
+    width: 95%;
+    padding: 16px;
+    max-height: 80vh;
+  }
 `;
 
 const SearchInput = styled(GlassInput)`
   width: 100%;
   margin-bottom: 20px;
+  
+  @media (max-width: 480px) {
+    margin-bottom: 12px;
+  }
 `;
 
 const SearchResults = styled.div`
@@ -425,6 +501,11 @@ const SearchResults = styled.div`
     background: #888;
     border-radius: 10px;
   }
+  
+  @media (max-width: 480px) {
+    max-height: 50vh;
+    gap: 8px;
+  }
 `;
 
 const SongResult = styled.div`
@@ -438,6 +519,11 @@ const SongResult = styled.div`
   
   &:hover {
     background: rgba(0, 0, 0, 0.05);
+  }
+  
+  @media (max-width: 480px) {
+    padding: 8px;
+    gap: 8px;
   }
 `;
 
@@ -455,6 +541,68 @@ const Progress = styled.div<{ $width: number }>`
   width: ${props => props.$width}%;
   background: var(--accent);
   transition: width 0.1s linear;
+`;
+
+// New styled components for Instagram-like layout
+const ProfileHeader = styled.div`
+  display: flex;
+  align-items: center;
+  padding: 20px;
+  gap: 30px;
+  
+  @media (max-width: 480px) {
+    padding: 16px;
+    gap: 20px;
+  }
+`;
+
+const ProfileDetails = styled.div`
+  flex: 1;
+`;
+
+const ProfileStats = styled.div`
+  display: flex;
+  gap: 20px;
+  margin: 15px 0;
+  
+  @media (max-width: 480px) {
+    gap: 15px;
+    margin: 10px 0;
+  }
+`;
+
+const StatItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  
+  @media (max-width: 480px) {
+    align-items: flex-start;
+  }
+`;
+
+const StatNumber = styled.div`
+  font-weight: bold;
+  font-size: 1.1em;
+`;
+
+const StatLabel = styled.div`
+  color: #666;
+  font-size: 0.9em;
+`;
+
+const ProfileBio = styled.div`
+  margin-bottom: 15px;
+  
+  @media (max-width: 480px) {
+    margin-bottom: 10px;
+  }
+`;
+
+const VerifiedBadge = styled.span`
+  color: #3897f0;
+  margin-left: 4px;
+  font-size: 1rem;
 `;
 
 const Profile: React.FC = () => {
@@ -680,7 +828,9 @@ const Profile: React.FC = () => {
         .insert([
           {
             content: html,
-            user_id: user.id
+            user_id: user.id,
+            image_url: currentImage,
+            background: selectedBackground
           }
         ])
         .select()
@@ -694,9 +844,7 @@ const Profile: React.FC = () => {
       // Add the background, image, date, and rawContent locally instead of in the database
       const newPost = {
         ...data,
-        background: selectedBackground,
         date: currentDate,
-        image: currentImage,
         rawContent: raw
       };
 
@@ -1061,81 +1209,85 @@ const Profile: React.FC = () => {
 
           {/* --- Profile Section --- */}
           <ProfileSectionContainer>
-            {/* Profile Photo Container (overlaps banner) */}
-            <ProfilePhotoContainer>
-              {user.avatar_url ? (
-                <ProfilePhoto src={user.avatar_url} alt="Profile" />
-              ) : (
-                <ProfilePhoto src={defaultAvatar} alt="Profile" />
-              )}
+            <ProfileHeader>
+              <ProfilePhoto src={user.avatar_url || defaultAvatar} alt="Profile" />
               
-              {/* Photo edit overlay - only shown for current user */}
-              {isCurrentUser && (
-                <div style={{ 
-                  position: 'absolute', 
-                  bottom: '0', 
-                  right: '0', 
-                  background: 'white',
-                  borderRadius: '50%',
-                  padding: '4px',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                  cursor: 'pointer'
-                }}>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handlePhotoUpload}
-                    style={{ display: 'none' }}
-                    ref={fileInputRef}
-                  />
-                  <IconButton onClick={() => fileInputRef.current?.click()} title="Change photo">
-                    ✎
-                  </IconButton>
-                </div>
-              )}
-            </ProfilePhotoContainer>
-
-            {/* Profile Info */}
-            <ProfileInfoContainer>
-              {isCurrentUser && isEditingUsername ? (
+              <ProfileDetails>
                 <UsernameWrapper>
-                  <UsernameInput
-                    type="text"
-                    value={newUsername}
-                    onChange={(e) => setNewUsername(e.target.value)}
-                  />
-                  <AquaButton onClick={handleSaveUsername} style={{ height: '34px', padding: '0 12px' }}>
-                    Save
-                  </AquaButton>
-                </UsernameWrapper>
-              ) : (
-                <UsernameWrapper>
-                  <h2>{user.username || 'Unknown User'}</h2>
-                  {isCurrentUser && (
-                    <IconButton onClick={() => setIsEditingUsername(true)} title="Edit username">
-                      ✎
-                    </IconButton>
+                  {isCurrentUser && isEditingUsername ? (
+                    <>
+                      <UsernameInput
+                        type="text"
+                        value={newUsername}
+                        onChange={(e) => setNewUsername(e.target.value)}
+                      />
+                      <AquaButton onClick={handleSaveUsername} style={{ height: '34px', padding: '0 12px' }}>
+                        Save
+                      </AquaButton>
+                    </>
+                  ) : (
+                    <>
+                      <h2>{user.username || 'Unknown User'}</h2>
+                      {isCurrentUser && (
+                        <IconButton onClick={() => setIsEditingUsername(true)} title="Edit username">
+                          ✎
+                        </IconButton>
+                      )}
+                    </>
                   )}
                 </UsernameWrapper>
-              )}
-              
-              {isCurrentUser && isEditingBio ? (
-                <div>
-                  <BioTextarea
-                    value={newBio}
-                    onChange={(e) => setNewBio(e.target.value)}
-                    rows={3}
-                  />
-                  <AquaButton onClick={handleSaveBio}>Save</AquaButton>
-                </div>
-              ) : (
-                <BioText onClick={isCurrentUser ? () => setIsEditingBio(true) : undefined}>
-                  {user.bio || 'No bio yet'}
-                  {isCurrentUser && (
-                    <EditIcon>✎</EditIcon>
-                  )}
-                </BioText>
-              )}
+                
+                <ProfileStats>
+                  <StatItem>
+                    <StatNumber>{posts.length}</StatNumber>
+                    <StatLabel>Posts</StatLabel>
+                  </StatItem>
+                  <StatItem>
+                    <StatNumber>0</StatNumber>
+                    <StatLabel>Followers</StatLabel>
+                  </StatItem>
+                  <StatItem>
+                    <StatNumber>0</StatNumber>
+                    <StatLabel>Following</StatLabel>
+                  </StatItem>
+                </ProfileStats>
+                
+                {isCurrentUser && (
+                  <div>
+                    {isCurrentUser && !isCurrentUser && (
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handlePhotoUpload}
+                        style={{ display: 'none' }}
+                        ref={fileInputRef}
+                      />
+                    )}
+                  </div>
+                )}
+              </ProfileDetails>
+            </ProfileHeader>
+            
+            <div style={{ padding: '0 20px 20px' }}>
+              <ProfileBio>
+                {isCurrentUser && isEditingBio ? (
+                  <div>
+                    <BioTextarea
+                      value={newBio}
+                      onChange={(e) => setNewBio(e.target.value)}
+                      rows={3}
+                    />
+                    <AquaButton onClick={handleSaveBio}>Save</AquaButton>
+                  </div>
+                ) : (
+                  <BioText onClick={isCurrentUser ? () => setIsEditingBio(true) : undefined}>
+                    {user.bio || 'No bio yet'}
+                    {isCurrentUser && (
+                      <EditIcon>✎</EditIcon>
+                    )}
+                  </BioText>
+                )}
+              </ProfileBio>
               
               {/* Deezer Song Profile Feature */}
               <ProfileMusicContainer>
@@ -1188,7 +1340,33 @@ const Profile: React.FC = () => {
                   </div>
                 )}
               </ProfileMusicContainer>
-            </ProfileInfoContainer>
+            </div>
+
+            {/* Clean up the ProfilePhotoContainer since we moved the photo */}
+            {isCurrentUser && (
+              <div style={{ 
+                position: 'absolute', 
+                top: '90px',
+                left: '90px', 
+                background: 'white',
+                borderRadius: '50%',
+                padding: '4px',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                cursor: 'pointer',
+                zIndex: 10
+              }}>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoUpload}
+                  style={{ display: 'none' }}
+                  ref={fileInputRef}
+                />
+                <IconButton onClick={() => fileInputRef.current?.click()} title="Change photo">
+                  ✎
+                </IconButton>
+              </div>
+            )}
           </ProfileSectionContainer>
 
           <TabsHeader style={{ marginTop: '20px' }}>
@@ -1245,8 +1423,8 @@ const Profile: React.FC = () => {
                         background: post.background || CARD_BACKGROUNDS[index % CARD_BACKGROUNDS.length]
                       }}>
                         <div dangerouslySetInnerHTML={{ __html: post.content }} />
-                        {post.image && (
-                          <img src={post.image} alt="Post" style={{ maxWidth: '100%', marginTop: '10px', borderRadius: '4px' }} />
+                        {post.image_url && (
+                          <img src={post.image_url} alt="Post" style={{ maxWidth: '100%', marginTop: '10px', borderRadius: '4px' }} />
                         )}
                         <Divider />
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

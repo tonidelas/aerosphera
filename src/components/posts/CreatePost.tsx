@@ -56,12 +56,43 @@ const Button = styled.button`
   }
 `;
 
+// Aqua-inspired colors
+const CARD_BACKGROUNDS = [
+  'linear-gradient(135deg, #F5F9FF, #E4EFF7)',
+  'linear-gradient(135deg, #F0F7FF, #E0ECF9)',
+  'linear-gradient(135deg, #F5FFFA, #E4F9EE)',
+  'linear-gradient(135deg, #FFF5F5, #F9E4E4)',
+  'linear-gradient(135deg, #F5F0FF, #EEE4F9)',
+];
+
+const BackgroundOptions = styled.div`
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+`;
+
+const BackgroundOption = styled.div<{ $bg: string; $selected: boolean }>`
+  width: 30px;
+  height: 30px;
+  border-radius: 5px;
+  background: ${props => props.$bg};
+  cursor: pointer;
+  border: ${props => props.$selected ? '2px solid #007bff' : '1px solid #ddd'};
+  box-shadow: ${props => props.$selected ? '0 0 5px #007bff' : 'none'};
+  transition: transform 0.2s ease;
+  
+  &:hover {
+    transform: scale(1.1);
+  }
+`;
+
 interface CreatePostProps {
   onPostCreated: () => void;
 }
 
 const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedBackground, setSelectedBackground] = useState(CARD_BACKGROUNDS[0]);
   const editorRef = useRef<SimpleEditorHandle>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -87,6 +118,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
           {
             content: html,
             image_url: imageUrl,
+            background: selectedBackground,
             user_id: (await user).data.user?.id
           }
         ]);
@@ -107,6 +139,19 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
     <CreatePostContainer>
       <form onSubmit={handleSubmit}>
         <SimpleEditor ref={editorRef} placeholder="What's on your mind?" />
+        <div style={{ marginTop: '10px' }}>
+          <small style={{ color: '#666', display: 'block', marginBottom: '5px' }}>Choose background color:</small>
+          <BackgroundOptions>
+            {CARD_BACKGROUNDS.map((bg, index) => (
+              <BackgroundOption 
+                key={index}
+                $bg={bg}
+                $selected={selectedBackground === bg}
+                onClick={() => setSelectedBackground(bg)}
+              />
+            ))}
+          </BackgroundOptions>
+        </div>
         <ButtonContainer>
           <Button
             type="submit"
