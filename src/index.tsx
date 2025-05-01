@@ -22,7 +22,7 @@ const root = ReactDOM.createRoot(
 root.render(
   <React.StrictMode>
     <StyleSheetManager shouldForwardProp={shouldForwardProp}>
-      <Router>
+      <Router basename="/aerofy">
         <App />
       </Router>
     </StyleSheetManager>

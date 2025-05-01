@@ -1,5 +1,5 @@
 {
-  "name": "vintage-social-media",
+  "name": "aerofy",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
@@ -58,5 +58,5 @@
   "devDependencies": {
     "@types/draft-js": "^0.11.18"
   },
-  "homepage": "https://tonidelas.github.io/fruitygaero"
+  "homepage": "https://tonidelas.github.io/aerofy"
 }
