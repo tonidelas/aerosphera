@@ -1,13 +1,18 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <meta http-equiv="refresh" content="0; url=/aerofy/" />
-    <script>
-      // This script preserves the path after /aerofy
-      var path = window.location.pathname.replace(/^\/aerofy/, '');
-      var search = window.location.search || '';
-      var hash = window.location.hash || '';
-      window.location.replace('/aerofy/' + path + search + hash);
+    <meta charset="utf-8" />
+    <title>Redirecting...</title>
+    <script type="text/javascript">
+      // Only redirect if not already at /aerofy
+      (function() {
+        var pathname = window.location.pathname;
+        var repo = '/aerofy';
+        // If not already at /aerofy, redirect
+        if (!pathname.startsWith(repo)) {
+          window.location.replace(repo + pathname + window.location.search + window.location.hash);
+        }
+      })();
     </script>
   </head>
   <body>
