@@ -4,7 +4,6 @@ import {
   FormTitle,
   GlassPanel,
   FormLabel,
-  GlassInput,
   AquaButton
 } from '../common/StyledComponents';
 
