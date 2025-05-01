@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { supabase } from '../../utils/supabaseClient';
@@ -22,6 +22,7 @@ import {
   GlassInput
 } from '../common/StyledComponents';
 import SimpleEditor, { SimpleEditorHandle } from '../common/SimpleEditor';
+import { searchDeezerTracks, DeezerTrack } from '../../utils/deezerClient';
 
 const BioTextarea = styled.textarea`
   width: 100%;
@@ -124,6 +125,8 @@ interface UserProfile {
   avatar_url: string;
   banner_url?: string;
   created_at: string;
+  deezer_track_id?: string;
+  deezer_track_info?: DeezerTrack;
 }
 
 const BackgroundOptions = styled.div`
@@ -288,6 +291,172 @@ function getPastelColorFromId(id: string): string {
   return `hsl(${hue}, 70%, 85%)`;
 }
 
+// New styled components for Spotify integration
+const ProfileMusicContainer = styled.div`
+  margin-top: 15px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 10px;
+  padding: 15px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+`;
+
+const MusicPlayer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  position: relative;
+`;
+
+const AlbumCover = styled.img`
+  width: 60px;
+  height: 60px;
+  border-radius: 5px;
+  object-fit: cover;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+`;
+
+const SongInfo = styled.div`
+  flex: 1;
+`;
+
+const SongTitle = styled.h4`
+  margin: 0 0 5px 0;
+  font-weight: 600;
+  color: #333;
+`;
+
+const ArtistName = styled.p`
+  margin: 0;
+  font-size: 0.9em;
+  color: #666;
+`;
+
+const PlayerControls = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+`;
+
+const PlayerButton = styled.button`
+  background: none;
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #333;
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 1);
+    transform: scale(1.05);
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const AddSongButton = styled(AquaButton)`
+  margin-top: 10px;
+  font-size: 0.9em;
+  padding: 6px 12px;
+  height: auto;
+`;
+
+const SearchModal = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+`;
+
+const SearchContent = styled.div`
+  background: white;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+`;
+
+const SearchInput = styled(GlassInput)`
+  width: 100%;
+  margin-bottom: 20px;
+`;
+
+const SearchResults = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-right: 5px;
+  
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+  }
+`;
+
+const SongResult = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  
+  &:hover {
+    background: rgba(0, 0, 0, 0.05);
+  }
+`;
+
+const ProgressBar = styled.div`
+  height: 4px;
+  width: 100%;
+  background: #e0e0e0;
+  border-radius: 2px;
+  margin-top: 8px;
+  overflow: hidden;
+`;
+
+const Progress = styled.div<{ $width: number }>`
+  height: 100%;
+  width: ${props => props.$width}%;
+  background: var(--accent);
+  transition: width 0.1s linear;
+`;
+
 const Profile: React.FC = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -305,6 +474,14 @@ const Profile: React.FC = () => {
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const { userId } = useParams<{ userId?: string }>();
+  const [showSpotifySearch, setShowSpotifySearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<DeezerTrack[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [playbackProgress, setPlaybackProgress] = useState(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const progressInterval = useRef<NodeJS.Timeout | null>(null);
 
   const defaultAvatar = '/default-avatar.png';
 
@@ -378,6 +555,10 @@ const Profile: React.FC = () => {
           }
         }
 
+        // Coerce deezer_track_id to string if it exists and is a number
+        if (profileData && typeof profileData.deezer_track_id === 'number') {
+          profileData.deezer_track_id = String(profileData.deezer_track_id);
+        }
         setUser(profileData);
         setNewBio(profileData?.bio || '');
         setNewUsername(profileData?.username || '');
@@ -592,6 +773,183 @@ const Profile: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+    // Create audio element for song preview playback
+    audioRef.current = new Audio();
+    
+    // Clean up audio element on unmount
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+      if (progressInterval.current) {
+        clearInterval(progressInterval.current);
+      }
+    };
+  }, []);
+
+  // Update audio source when user profile is loaded with a track
+  useEffect(() => {
+    if (user?.deezer_track_info?.preview && audioRef.current) {
+      // Reset audio state
+      setIsPlaying(false);
+      setPlaybackProgress(0);
+      
+      // Set new source
+      audioRef.current.src = user.deezer_track_info.preview || '';
+      
+      audioRef.current.onended = () => {
+        setIsPlaying(false);
+        setPlaybackProgress(0);
+        if (progressInterval.current) {
+          clearInterval(progressInterval.current);
+          progressInterval.current = null;
+        }
+      };
+      
+      // Add error handler for audio loading issues
+      audioRef.current.onerror = (e) => {
+        console.error('Audio playback error:', e);
+        setIsPlaying(false);
+      };
+    }
+  }, [user]);
+
+  const handleTogglePlayback = useCallback(() => {
+    if (!audioRef.current || !user?.deezer_track_info?.preview) return;
+    
+    if (isPlaying) {
+      audioRef.current.pause();
+      if (progressInterval.current) {
+        clearInterval(progressInterval.current);
+        progressInterval.current = null;
+      }
+    } else {
+      audioRef.current.play();
+      progressInterval.current = setInterval(() => {
+        if (audioRef.current) {
+          const percentage = (audioRef.current.currentTime / audioRef.current.duration) * 100;
+          setPlaybackProgress(percentage);
+        }
+      }, 100);
+    }
+    
+    setIsPlaying(!isPlaying);
+  }, [isPlaying, user]);
+
+  const searchDeezer = async (query: string) => {
+    if (!query.trim()) return;
+    setIsSearching(true);
+    try {
+      const results = await searchDeezerTracks(query);
+      setSearchResults(results);
+    } catch (error) {
+      console.error('Error searching Deezer:', error);
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleSelectTrack = async (track: DeezerTrack) => {
+    if (!user) return;
+    try {
+      if (!track.preview) {
+        const confirmAdd = window.confirm(
+          "This song doesn't have a playable preview. You can still add it to your profile, but you won't be able to play it. Continue?"
+        );
+        if (!confirmAdd) return;
+      }
+      // Save the selected track to the user's profile (update to use Deezer fields)
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          deezer_track_id: String(track.id),
+          deezer_track_info: track
+        })
+        .eq('id', user.id);
+      if (error) throw error;
+      setUser(prev => prev ? {
+        ...prev,
+        deezer_track_id: String(track.id),
+        deezer_track_info: track
+      } : null);
+      setShowSpotifySearch(false);
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = track.preview || '';
+        setPlaybackProgress(0);
+        setIsPlaying(false);
+      }
+    } catch (error) {
+      console.error('Error saving track to profile:', error);
+    }
+  };
+
+  const handleRemoveTrack = async () => {
+    if (!user) return;
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          deezer_track_id: null,
+          deezer_track_info: null
+        })
+        .eq('id', user.id);
+      if (error) throw error;
+      setUser(prev => prev ? {
+        ...prev,
+        deezer_track_id: undefined,
+        deezer_track_info: undefined
+      } : null);
+      if (isPlaying && audioRef.current) {
+        audioRef.current.pause();
+        setIsPlaying(false);
+        setPlaybackProgress(0);
+      }
+    } catch (error) {
+      console.error('Error removing track from profile:', error);
+    }
+  };
+
+  const renderSearchResults = () => {
+    if (isSearching) {
+      return <p style={{ textAlign: 'center', color: '#666' }}>Searching...</p>;
+    }
+    if (searchResults.length === 0 && searchQuery && !isSearching) {
+      return <p style={{ textAlign: 'center', color: '#666' }}>No tracks found. Try another search.</p>;
+    }
+    return searchResults.map(track => {
+      const hasPreview = !!track.preview;
+      return (
+        <SongResult
+          key={track.id}
+          onClick={() => handleSelectTrack(track)}
+          style={{
+            opacity: hasPreview ? 1 : 0.7,
+            position: 'relative'
+          }}
+        >
+          <AlbumCover
+            src={track.album.cover || '/default-album.png'}
+            alt="Album Cover"
+            style={{ width: '50px', height: '50px' }}
+          />
+          <SongInfo>
+            <SongTitle>{track.title}</SongTitle>
+            <ArtistName>{track.artist.name}</ArtistName>
+            {!hasPreview && (
+              <small style={{ color: '#ff5555', fontSize: '0.8em' }}>
+                No preview available
+              </small>
+            )}
+          </SongInfo>
+        </SongResult>
+      );
+    });
+  };
+
   if (isLoading) {
     return <div>Loading...</div>;
   }
@@ -778,6 +1136,58 @@ const Profile: React.FC = () => {
                   )}
                 </BioText>
               )}
+              
+              {/* Deezer Song Profile Feature */}
+              <ProfileMusicContainer>
+                {user.deezer_track_info ? (
+                  <>
+                    <MusicPlayer>
+                      <AlbumCover
+                        src={user.deezer_track_info.album.cover || '/default-album.png'}
+                        alt="Album Cover"
+                      />
+                      <SongInfo>
+                        <SongTitle>{user.deezer_track_info.title}</SongTitle>
+                        <ArtistName>{user.deezer_track_info.artist.name}</ArtistName>
+                        {user.deezer_track_info.preview ? (
+                          <ProgressBar>
+                            <Progress $width={playbackProgress} />
+                          </ProgressBar>
+                        ) : (
+                          <small style={{ color: '#ff5555', fontSize: '0.8em', marginTop: '8px', display: 'block' }}>
+                            No preview available
+                          </small>
+                        )}
+                      </SongInfo>
+                      <PlayerControls>
+                        {user.deezer_track_info.preview ? (
+                          <PlayerButton onClick={handleTogglePlayback}>
+                            {isPlaying ? '⏸' : '▶️'}
+                          </PlayerButton>
+                        ) : (
+                          <PlayerButton disabled title="No preview available">
+                            🔇
+                          </PlayerButton>
+                        )}
+                        {isCurrentUser && (
+                          <PlayerButton onClick={handleRemoveTrack} title="Remove song">
+                            ❌
+                          </PlayerButton>
+                        )}
+                      </PlayerControls>
+                    </MusicPlayer>
+                  </>
+                ) : (
+                  <div style={{ textAlign: 'center' }}>
+                    <p>No song selected for profile</p>
+                    {isCurrentUser && (
+                      <AddSongButton onClick={() => setShowSpotifySearch(true)}>
+                        Add a song to your profile
+                      </AddSongButton>
+                    )}
+                  </div>
+                )}
+              </ProfileMusicContainer>
             </ProfileInfoContainer>
           </ProfileSectionContainer>
 
@@ -870,6 +1280,42 @@ const Profile: React.FC = () => {
               </div>
             )}
           </TabContainer>
+          
+          {/* Song Search Modal */}
+          {showSpotifySearch && (
+            <SearchModal>
+              <SearchContent>
+                <h3>Add a song to your profile</h3>
+                <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+                  <SearchInput
+                    type="text"
+                    placeholder="Search for a song..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && searchDeezer(searchQuery)}
+                  />
+                  <AquaButton
+                    onClick={() => searchDeezer(searchQuery)}
+                    disabled={isSearching}
+                    style={{ minWidth: '80px' }}
+                  >
+                    {isSearching ? 'Searching...' : 'Search'}
+                  </AquaButton>
+                </div>
+                <SearchResults>
+                  {renderSearchResults()}
+                </SearchResults>
+                <div style={{ textAlign: 'right', marginTop: '20px' }}>
+                  <AquaButton
+                    onClick={() => setShowSpotifySearch(false)}
+                    style={{ background: '#eee', color: '#333' }}
+                  >
+                    Cancel
+                  </AquaButton>
+                </div>
+              </SearchContent>
+            </SearchModal>
+          )}
         </WindowContent>
       </WindowFrame>
     </WindowContainer>
