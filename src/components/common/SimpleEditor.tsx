@@ -104,7 +104,7 @@ const RemoveButton = styled(AquaButton)`
 
 export interface SimpleEditorHandle {
   getContent: () => { html: string; raw: any };
-  getImage: () => string | null;
+  getImage: () => File | null;
   reset: () => void;
 }
 
@@ -115,7 +115,8 @@ interface SimpleEditorProps {
 const SimpleEditor = forwardRef<SimpleEditorHandle, SimpleEditorProps>(
   ({ placeholder }, ref) => {
     const [content, setContent] = useState('');
-    const [selectedImage, setSelectedImage] = useState<string | null>(null);
+    const [selectedImage, setSelectedImage] = useState<File | null>(null);
+    const [imagePreview, setImagePreview] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     
     useImperativeHandle(ref, () => ({
@@ -129,15 +130,17 @@ const SimpleEditor = forwardRef<SimpleEditorHandle, SimpleEditorProps>(
       reset: () => {
         setContent('');
         setSelectedImage(null);
+        setImagePreview(null);
       }
     }), [content, selectedImage]);
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (file) {
+        setSelectedImage(file);
         const reader = new FileReader();
         reader.onloadend = () => {
-          setSelectedImage(reader.result as string);
+          setImagePreview(reader.result as string);
         };
         reader.readAsDataURL(file);
       }
@@ -170,12 +173,12 @@ const SimpleEditor = forwardRef<SimpleEditorHandle, SimpleEditorProps>(
           onChange={handleImageUpload}
         />
         
-        {selectedImage && (
+        {imagePreview && (
           <ImageUploadContainer>
             <ImagePreview>
-              <img src={selectedImage} alt="Preview" />
+              <img src={imagePreview} alt="Preview" />
             </ImagePreview>
-            <RemoveButton onClick={() => setSelectedImage(null)}>
+            <RemoveButton onClick={() => { setSelectedImage(null); setImagePreview(null); }}>
               Remove Image
             </RemoveButton>
           </ImageUploadContainer>

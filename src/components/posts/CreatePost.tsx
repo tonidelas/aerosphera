@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import styled from 'styled-components';
 import { supabase } from '../../utils/supabaseClient';
 import { uploadImage } from '../../utils/cloudinaryUtils';
+import SimpleEditor, { SimpleEditorHandle } from '../common/SimpleEditor';
 
 const CreatePostContainer = styled.div`
   background: white;
@@ -113,26 +114,15 @@ interface CreatePostProps {
 }
 
 const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
-  const [content, setContent] = useState('');
-  const [image, setImage] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setImage(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+  const editorRef = useRef<SimpleEditorHandle>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!content.trim() && !image) return;
+    if (!editorRef.current) return;
+    const { html, raw } = editorRef.current.getContent();
+    const image = editorRef.current.getImage();
+    if (!raw.trim() && !image) return;
 
     setIsSubmitting(true);
     try {
@@ -148,7 +138,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
         .from('posts')
         .insert([
           {
-            content: content.trim(),
+            content: html,
             image_url: imageUrl,
             user_id: (await user).data.user?.id
           }
@@ -156,9 +146,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
 
       if (error) throw error;
 
-      setContent('');
-      setImage(null);
-      setImagePreview(null);
+      editorRef.current.reset();
       onPostCreated();
     } catch (error) {
       console.error('Error creating post:', error);
@@ -171,30 +159,11 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
   return (
     <CreatePostContainer>
       <form onSubmit={handleSubmit}>
-        <TextArea
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder="What's on your mind?"
-        />
-        
-        {imagePreview && (
-          <ImagePreview src={imagePreview} alt="Preview" />
-        )}
-        
+        <SimpleEditor ref={editorRef} placeholder="What's on your mind?" />
         <ButtonContainer>
-          <FileInput
-            type="file"
-            id="image-upload"
-            accept="image/*"
-            onChange={handleImageChange}
-          />
-          <FileLabel htmlFor="image-upload">
-            Add Image
-          </FileLabel>
-          
           <Button
             type="submit"
-            disabled={isSubmitting || (!content.trim() && !image)}
+            disabled={isSubmitting}
           >
             {isSubmitting ? 'Posting...' : 'Post'}
           </Button>

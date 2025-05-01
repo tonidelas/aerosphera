@@ -1,7 +1,9 @@
 import React from 'react';
 import styled from 'styled-components';
 import { supabase } from '../../utils/supabaseClient';
-import { Heart, HeartFill } from 'react-bootstrap-icons';
+import { Heart, HeartFill, ThreeDots } from 'react-bootstrap-icons';
+import { AquaButton } from '../common/StyledComponents';
+import SimpleEditor from '../common/SimpleEditor';
 
 const PostContainer = styled.div`
   background: white;
@@ -97,6 +99,48 @@ const LikeButton = styled.button<LikeButtonProps>`
   }
 `;
 
+const MenuButton = styled.button`
+  background: none;
+  border: none;
+  cursor: pointer;
+  margin-left: auto;
+  padding: 4px 8px;
+  font-size: 20px;
+  color: #888;
+  border-radius: 4px;
+  transition: background 0.2s;
+  &:hover {
+    background: #f0f0f0;
+  }
+`;
+
+const MenuDropdown = styled.div`
+  position: absolute;
+  right: 0;
+  top: 40px;
+  background: white;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  z-index: 10;
+  min-width: 120px;
+  padding: 6px 0;
+`;
+
+const MenuItem = styled.button`
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 10px 16px;
+  text-align: left;
+  font-size: 15px;
+  color: #333;
+  cursor: pointer;
+  &:hover {
+    background: #f5f5f5;
+  }
+`;
+
 interface PostProps {
   id: string;
   content: string;
@@ -107,7 +151,22 @@ interface PostProps {
   likes_count: number;
   is_liked: boolean;
   onLike: (postId: string) => void;
+  currentUserId: string | null;
+  onDelete: () => void;
+  created_at: string;
 }
+
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return date.toLocaleString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
+};
 
 const Post: React.FC<PostProps> = ({
   id,
@@ -117,21 +176,164 @@ const Post: React.FC<PostProps> = ({
   avatar_url,
   likes_count,
   is_liked,
-  onLike
+  onLike,
+  user_id,
+  currentUserId,
+  onDelete,
+  created_at
 }) => {
+  const [menuOpen, setMenuOpen] = React.useState(false);
+  const [editing, setEditing] = React.useState(false);
+  const [edited, setEdited] = React.useState(false);
+  const [editContent, setEditContent] = React.useState(content);
+  const [editImage, setEditImage] = React.useState<string | null>(image_url);
+  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
+  const editorRef = React.useRef<any>(null);
+  const menuRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    if (menuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [menuOpen]);
+
+  const handleEdit = () => {
+    setMenuOpen(false);
+    setEditing(true);
+    setEditContent(content);
+    setEditImage(image_url);
+  };
+
+  const handleEditCancel = () => {
+    setEditing(false);
+  };
+
+  const handleEditSave = async () => {
+    const newContent = editorRef.current ? editorRef.current.getContent().raw : editContent;
+    const newImage = editorRef.current ? editorRef.current.getImage() : editImage;
+    try {
+      const { error } = await supabase
+        .from('posts')
+        .update({ content: newContent, image_url: newImage, updated_at: new Date().toISOString() })
+        .eq('id', id);
+      if (error) throw error;
+      setEditing(false);
+      setEdited(true);
+      onDelete(); // refresh feed
+    } catch (error) {
+      alert('Failed to update post.');
+      console.error('Error updating post:', error);
+    }
+  };
+
+  const handleDelete = async () => {
+    setMenuOpen(false);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    setShowDeleteConfirm(false);
+    try {
+      const { error } = await supabase
+        .from('posts')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+      onDelete();
+    } catch (error) {
+      alert('Failed to delete post.');
+      console.error('Error deleting post:', error);
+    }
+  };
+
+  const cancelDelete = () => {
+    setShowDeleteConfirm(false);
+  };
+
   return (
     <PostContainer>
-      <PostHeader>
+      {showDeleteConfirm && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          background: 'rgba(0,0,0,0.3)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '10px',
+            padding: '32px 24px',
+            boxShadow: '0 4px 24px rgba(0,0,0,0.15)',
+            minWidth: '300px',
+            textAlign: 'center'
+          }}>
+            <h3 style={{ marginBottom: '18px' }}>Are you sure you want to delete this post?</h3>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '16px' }}>
+              <AquaButton onClick={confirmDelete} style={{ minWidth: '80px' }}>Yes</AquaButton>
+              <AquaButton onClick={cancelDelete} style={{ minWidth: '80px', background: '#eee', color: '#333' }}>Cancel</AquaButton>
+            </div>
+          </div>
+        </div>
+      )}
+      <PostHeader style={{ position: 'relative' }}>
         <Avatar 
           src={avatar_url || 'https://via.placeholder.com/40'} 
           alt={username}
         />
-        <Username>{username}</Username>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <Username>{username}</Username>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ color: '#888', fontSize: 13 }}>{formatDate(created_at)}</span>
+            {edited && <span style={{ color: '#888', fontSize: 13 }}>(Edited)</span>}
+          </div>
+        </div>
+        {currentUserId && currentUserId === user_id && (
+          <div ref={menuRef} style={{ position: 'relative', marginLeft: 'auto' }}>
+            <MenuButton onClick={() => setMenuOpen(m => !m)} title="Post options">
+              <ThreeDots />
+            </MenuButton>
+            {menuOpen && (
+              <MenuDropdown>
+                <MenuItem onClick={handleEdit}>Edit</MenuItem>
+                <MenuItem onClick={handleDelete}>Delete</MenuItem>
+              </MenuDropdown>
+            )}
+          </div>
+        )}
       </PostHeader>
       
       <PostContent>{content}</PostContent>
       
       {image_url && <PostImage src={image_url} alt="Post content" />}
+      
+      {editing && (
+        <div style={{ marginTop: 12 }}>
+          <SimpleEditor
+            ref={editorRef}
+            placeholder="Edit your post..."
+          />
+          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+            <AquaButton onClick={handleEditSave}>Save</AquaButton>
+            <AquaButton style={{ background: '#eee', color: '#333' }} onClick={handleEditCancel}>Cancel</AquaButton>
+          </div>
+        </div>
+      )}
       
       <PostFooter>
         <LikeButton 

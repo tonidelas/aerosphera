@@ -66,11 +66,13 @@ interface Like {
 const Feed: React.FC = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const fetchPosts = async () => {
     try {
       const user = await supabase.auth.getUser();
       const userId = user.data.user?.id;
+      setCurrentUserId(userId || null);
 
       console.log('Fetching posts...');
       
@@ -228,6 +230,9 @@ const Feed: React.FC = () => {
             likes_count={post.likes_count}
             is_liked={post.is_liked}
             onLike={handleLike}
+            currentUserId={currentUserId}
+            onDelete={fetchPosts}
+            created_at={post.created_at}
           />
         ))
       ) : (
