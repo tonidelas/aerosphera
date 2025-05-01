@@ -1,4 +1,4 @@
-# Aerophera - Vintage-inspired social media experience
+# Aerosphera - Vintage-inspired social media experience
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
