@@ -270,6 +270,8 @@ const Post: React.FC<PostProps> = ({
   const editorRef = React.useRef<any>(null);
   const menuRef = React.useRef<HTMLDivElement>(null);
   const [localTrackInfo, setLocalTrackInfo] = React.useState(music_track_info);
+  const postAudioRef = React.useRef<HTMLAudioElement>(null);
+  const [isPostPlaying, setIsPostPlaying] = React.useState(false);
 
   React.useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -303,6 +305,22 @@ const Post: React.FC<PostProps> = ({
       refresh();
     }
   }, [localTrackInfo]);
+
+  React.useEffect(() => {
+    const handleGlobalAudioPlay = (event: Event) => {
+      const customEvent = event as CustomEvent<{ source: string, id?: string }>;
+      if (customEvent.detail.source !== 'post' || customEvent.detail.id !== id) {
+        postAudioRef.current?.pause();
+        setIsPostPlaying(false);
+      }
+    };
+
+    document.addEventListener('aerofy-audio-play', handleGlobalAudioPlay);
+
+    return () => {
+      document.removeEventListener('aerofy-audio-play', handleGlobalAudioPlay);
+    };
+  }, [id]);
 
   const handleAudioError = React.useCallback(async () => {
     if (!localTrackInfo) return;
@@ -449,9 +467,18 @@ const Post: React.FC<PostProps> = ({
               <ArtistName>{localTrackInfo.artist?.name || 'Unknown Artist'}</ArtistName>
               {localTrackInfo.preview ? (
                 <AudioPlayerStyled
+                  ref={postAudioRef}
                   controls
                   src={localTrackInfo.preview}
                   onError={handleAudioError}
+                  onPlay={() => {
+                    setIsPostPlaying(true);
+                    document.dispatchEvent(new CustomEvent('aerofy-audio-play', { 
+                      detail: { source: 'post', id: id } 
+                    }));
+                  }}
+                  onPause={() => setIsPostPlaying(false)}
+                  onEnded={() => setIsPostPlaying(false)}
                 >
                   Your browser does not support the audio element.
                 </AudioPlayerStyled>

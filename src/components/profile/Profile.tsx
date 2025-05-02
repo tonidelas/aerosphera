@@ -757,6 +757,7 @@ const Profile: React.FC = () => {
   const [isProfileSongPlaying, setIsProfileSongPlaying] = useState(false); // State for profile song playback
   const [showMenuForPost, setShowMenuForPost] = useState<string | null>(null); // State for post menu visibility
   const [postLikes, setPostLikes] = useState<{[key: string]: boolean}>({});
+  const profileAudioRef = useRef<HTMLAudioElement>(null); // Add ref for profile audio
 
   const defaultAvatar = '/default-avatar.png';
 
@@ -1323,13 +1324,32 @@ const Profile: React.FC = () => {
     ));
   };
 
-  // Add a useEffect to automatically refresh track data on load
+  // Add useEffect to refresh track only if preview is missing initially
   useEffect(() => {
-    // If the user has a track, refresh it automatically when the profile loads
-    if (user?.music_track_info) {
+    if (user?.music_track_info && !user.music_track_info.preview) {
+      console.log('Track info present but preview missing, refreshing...');
       refreshTrack();
     }
-  }, [user?.id]); // Only run when the user ID changes (when profile first loads)
+  }, [user?.music_track_info]); // Run when track info changes
+
+  // Add effect to handle global audio play events
+  useEffect(() => {
+    const handleGlobalAudioPlay = (event: Event) => {
+      // Cast event to CustomEvent to access detail
+      const customEvent = event as CustomEvent<{ source: string, id?: string }>;
+      if (customEvent.detail.source !== 'profile') {
+        profileAudioRef.current?.pause();
+        setIsProfileSongPlaying(false); // Update state if paused externally
+      }
+    };
+
+    document.addEventListener('aerofy-audio-play', handleGlobalAudioPlay);
+
+    // Cleanup listener on component unmount
+    return () => {
+      document.removeEventListener('aerofy-audio-play', handleGlobalAudioPlay);
+    };
+  }, []); // Empty dependency array ensures this runs only once
 
   if (isLoading) {
     return <div>Loading...</div>;
@@ -1534,12 +1554,16 @@ const Profile: React.FC = () => {
                         <div style={{ marginTop: '8px' }}>
                           {user.music_track_info.preview ? (
                             <audio 
+                              ref={profileAudioRef}
                               controls 
                               src={user.music_track_info.preview} 
-                              style={{ width: '100%' }}
+                              style={{ width: '100%', height: '30px', marginTop: '8px' }}
                               onPlay={() => {
                                 console.log('Profile audio playing');
                                 setIsProfileSongPlaying(true);
+                                document.dispatchEvent(new CustomEvent('aerofy-audio-play', { 
+                                  detail: { source: 'profile' } 
+                                }));
                               }}
                               onPause={() => {
                                 console.log('Profile audio paused');
@@ -1552,10 +1576,10 @@ const Profile: React.FC = () => {
                               onError={(e) => {
                                 console.error('Audio playback error:', e);
                                 // Automatically refresh when playback fails
-                                refreshTrack();
+                                refreshTrack(); // Call refreshTrack here
                               }}
-                            >
-                              Your browser does not support the audio element.
+                             >
+                               Your browser does not support the audio element.
                             </audio>
                           ) : (
                             <small style={{ color: '#ff5555', fontSize: '0.8em' }}>
