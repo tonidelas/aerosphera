@@ -4,6 +4,7 @@ import { supabase } from '../../utils/supabaseClient';
 import Post from './Post';
 import CreatePost from './CreatePost';
 import { DeezerTrack } from '../../utils/deezerClient';
+import { Session } from '@supabase/supabase-js';
 
 const FeedContainer = styled.div`
   max-width: 600px;
@@ -61,135 +62,224 @@ interface PostData {
   is_liked: boolean;
 }
 
-const FEED_BG_KEY = 'feedBackgroundImage';
-
 const Feed: React.FC = () => {
   const [posts, setPosts] = useState<PostData[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingPosts, setLoadingPosts] = useState(true);
+  const [loadingProfile, setLoadingProfile] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [feedBg, setFeedBg] = useState<string | null>(null);
+  const [feedBgUrl, setFeedBgUrl] = useState<string | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
 
   useEffect(() => {
-    const savedBg = localStorage.getItem(FEED_BG_KEY);
-    if (savedBg) setFeedBg(savedBg);
-    else setFeedBg(null);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (!session) setLoadingProfile(false);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (!session) {
+        setFeedBgUrl(null);
+        setLoadingProfile(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
-    if (feedBg) {
-      document.body.style.background = `url(${feedBg}) center/cover no-repeat fixed`;
+    if (!session?.user) {
+      setFeedBgUrl(null);
+      setLoadingProfile(false);
+      return;
+    }
+
+    const loadProfileBackground = async () => {
+      setLoadingProfile(true);
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('feed_background_image_url')
+          .eq('id', session.user.id)
+          .single();
+
+        if (error) {
+          console.error("Error fetching profile background:", error);
+          setFeedBgUrl(null);
+        } else {
+          setFeedBgUrl(data?.feed_background_image_url || null);
+        }
+      } catch (err) {
+        console.error("Failed to load profile background:", err);
+        setFeedBgUrl(null);
+      } finally {
+        setLoadingProfile(false);
+      }
+    };
+
+    loadProfileBackground();
+  }, [session]);
+
+  useEffect(() => {
+    const defaultBackground = 'linear-gradient(to bottom, #BADFFF, #E2E8F0)';
+    if (feedBgUrl) {
+      document.body.style.background = `url(${feedBgUrl}) center/cover no-repeat fixed`;
     } else {
-      document.body.style.background = 'linear-gradient(to bottom, #BADFFF, #E2E8F0)';
+      document.body.style.background = defaultBackground;
     }
     return () => {
-      document.body.style.background = 'linear-gradient(to bottom, #BADFFF, #E2E8F0)';
+      document.body.style.background = defaultBackground;
     };
-  }, [feedBg]);
+  }, [feedBgUrl]);
 
   const fetchPosts = async () => {
+    setLoadingPosts(true);
     try {
-      const user = await supabase.auth.getUser();
-      const userId = user.data.user?.id;
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id;
       setCurrentUserId(userId || null);
 
       console.log('Fetching posts...');
       
-      // First fetch all profiles to ensure they exist
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('*');
-        
-      if (profilesError) {
-        console.error('Error fetching profiles:', profilesError);
-      } else {
-        console.log('Profiles found:', profiles?.length);
-      }
-
-      // Now fetch posts and join with profiles manually
+      // First, simply get all posts
       const { data: postsData, error: postsError } = await supabase
         .from('posts')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (postsError) {
-        console.error('Error details:', postsError);
+        console.error('Error fetching posts:', postsError);
         throw postsError;
       }
       
       if (!postsData || postsData.length === 0) {
         setPosts([]);
-        setLoading(false);
+        setLoadingPosts(false);
         return;
       }
       
-      // Get user information for each post
-      const formattedPosts = await Promise.all(postsData.map(async (post: any) => {
-        // Fetch the profile information for this post
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('username, avatar_url')
-          .eq('id', post.user_id)
-          .single();
-          
-        let profileInfo = {
-          username: 'Unknown',
-          avatar_url: null
-        };
-        if (!profileError && profileData) {
-          profileInfo = profileData;
-        } else if (profileError) {
-           console.error('Error fetching profile for post:', post.id, profileError);
-        }
+      // Get unique user IDs from the posts
+      const userIds = Array.from(new Set(postsData.map(post => post.user_id)));
+      
+      // Fetch all profiles for these users in a single query
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, username, avatar_url')
+        .in('id', userIds);
         
-        // Get likes count
-        const { count, error: countError } = await supabase
-          .from('likes')
-          .select('*', { count: 'exact', head: true })
-          .eq('post_id', post.id);
-          
-        let likesCount = 0;
-        if (!countError && count !== null) {
-          likesCount = count;
-        }
-        
-        // Check if current user has liked this post
-        let isLiked = false;
-        if (userId) {
-          try {
-            const { data: likeData, error: likeError } = await supabase
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+        // Don't throw here, we'll use a fallback for profiles
+      }
+      
+      // Create a map of user_id -> profile data for easy lookup
+      const profilesMap = new Map();
+      if (profilesData) {
+        profilesData.forEach(profile => {
+          profilesMap.set(profile.id, profile);
+        });
+      }
+      
+      // Get post IDs for likes queries
+      const postIds = postsData.map(p => p.id);
+      let likesMap = new Map<string, number>();
+      let userLikesSet = new Set<string>();
+
+      // Fetch the like counts for all posts
+      if (postIds.length > 0) {
+        try {
+          // First try the RPC method (if it exists)
+          const { data: countsData, error: countsError } = await supabase
+            .rpc('get_like_counts', { post_ids: postIds });
+
+          if (countsError) {
+            // If RPC fails, fallback to counting likes manually for each post
+            console.log("RPC get_like_counts failed, falling back to manual counts");
+            const { data: likesData, error: likesDataError } = await supabase
               .from('likes')
-              .select('id')
-              .eq('post_id', post.id)
-              .eq('user_id', userId)
-              .limit(1);
+              .select('post_id')
+              .in('post_id', postIds);
               
-            if (!likeError && likeData && likeData.length > 0) {
-              isLiked = true;
+            if (!likesDataError && likesData) {
+              // Count likes for each post
+              likesData.forEach(like => {
+                const count = likesMap.get(like.post_id) || 0;
+                likesMap.set(like.post_id, count + 1);
+              });
+            } else {
+              console.error("Error fetching likes data:", likesDataError);
             }
-          } catch (error) {
-            console.error('Error checking like status:', error);
+          } else if (countsData) {
+            countsData.forEach((item: { post_id: string, like_count: number }) => 
+              likesMap.set(item.post_id, item.like_count));
           }
+
+          // Check which posts the current user has liked
+          if (userId) {
+            const { data: userLikesData, error: userLikesError } = await supabase
+              .from('likes')
+              .select('post_id')
+              .eq('user_id', userId)
+              .in('post_id', postIds);
+
+            if (!userLikesError && userLikesData) {
+              userLikesData.forEach(like => userLikesSet.add(like.post_id));
+            } else {
+              console.error("Error fetching user likes:", userLikesError);
+            }
+          }
+        } catch (err) {
+          console.error("Error processing likes:", err);
         }
-        
+      }
+
+      // Combine the post data with profile data
+      const formattedPosts = postsData.map((post: any) => {
+        // Get the profile or use a fallback
+        const profile = profilesMap.get(post.user_id) || { 
+          username: 'Unknown User', 
+          avatar_url: null 
+        };
+
         return {
           ...post,
-          profiles: profileInfo,
-          likes_count: likesCount,
-          is_liked: isLiked,
-          music_track_info: typeof post.music_track_info === 'string' ? JSON.parse(post.music_track_info) : post.music_track_info
+          profiles: {
+            username: profile.username,
+            avatar_url: profile.avatar_url
+          },
+          likes_count: likesMap.get(post.id) || 0,
+          is_liked: userLikesSet.has(post.id),
+          music_track_info: typeof post.music_track_info === 'string'
+            ? JSON.parse(post.music_track_info)
+            : post.music_track_info
         };
-      }));
+      });
       
       setPosts(formattedPosts);
     } catch (error) {
-      console.error('Error fetching posts:', error);
+      console.error('Error in fetchPosts function:', error);
     } finally {
-      setLoading(false);
+      setLoadingPosts(false);
     }
   };
 
   useEffect(() => {
     fetchPosts();
+
+    const postSubscription = supabase.channel('public:posts')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, fetchPosts)
+      .subscribe();
+
+    const likeSubscription = supabase.channel('public:likes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'likes' }, fetchPosts)
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(postSubscription);
+      supabase.removeChannel(likeSubscription);
+    };
   }, []);
 
   const handleLike = async (postId: string) => {
@@ -201,29 +291,50 @@ const Feed: React.FC = () => {
       const post = posts.find((p: PostData) => p.id === postId);
       if (!post) return;
 
-      if (post.is_liked) {
+      const wasLiked = post.is_liked;
+      setPosts(currentPosts => currentPosts.map(p =>
+        p.id === postId
+          ? { ...p, is_liked: !wasLiked, likes_count: wasLiked ? p.likes_count - 1 : p.likes_count + 1 }
+          : p
+      ));
+
+      if (wasLiked) {
         const { error } = await supabase
           .from('likes')
           .delete()
           .match({ post_id: postId, user_id: userId });
 
-        if (error) throw error;
+        if (error) {
+          console.error("Error unliking:", error);
+          setPosts(currentPosts => currentPosts.map(p =>
+            p.id === postId
+              ? { ...p, is_liked: wasLiked, likes_count: post.likes_count }
+              : p
+          ));
+          throw error;
+        }
       } else {
         const { error } = await supabase
           .from('likes')
           .insert([{ post_id: postId, user_id: userId }]);
 
-        if (error) throw error;
+        if (error) {
+          console.error("Error liking:", error);
+          setPosts(currentPosts => currentPosts.map(p =>
+            p.id === postId
+              ? { ...p, is_liked: wasLiked, likes_count: post.likes_count }
+              : p
+          ));
+          throw error;
+        }
       }
-
-      fetchPosts(); // Refresh posts to update like counts
     } catch (error) {
       console.error('Error toggling like:', error);
     }
   };
 
-  if (loading) {
-    return <LoadingIndicator>Loading...</LoadingIndicator>;
+  if (loadingPosts || loadingProfile) {
+    return <LoadingIndicator>Loading Feed...</LoadingIndicator>;
   }
 
   return (

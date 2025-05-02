@@ -318,17 +318,28 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editorRef.current) return;
+
     const { html, raw } = editorRef.current.getContent();
-    const image = editorRef.current.getImage();
+    const imageUrl = editorRef.current.getImage();
     
-    // Check if either text, image, or song is provided
-    if (!raw.trim() && !image && !selectedTrack) {
-      setStatusMessage({
-        text: 'Please enter text, add an image, or select a song snippet to create a post',
-        isError: true
-      });
-      setTimeout(() => setStatusMessage(null), 5000);
-      return;
+    console.log('Post content debug:', { 
+      html, 
+      rawBlocks: raw?.blocks, 
+      imageUrl, 
+      hasTrack: !!selectedTrack 
+    });
+
+    // Improved check for empty post content
+    // Check for text content in html or raw blocks
+    const hasText = html && html.trim() !== '' && html !== '<p></p>' && html !== '<p><br></p>';
+    const hasImage = !!imageUrl;
+    const hasTrack = !!selectedTrack;
+    
+    console.log('Content validation:', { hasText, hasImage, hasTrack });
+
+    if (!hasText && !hasImage && !hasTrack) {
+      console.log('Attempted to create an empty post.');
+      return; // Prevent submission
     }
 
     setIsSubmitting(true);
@@ -340,13 +351,13 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
       if (!userResult.data.user) throw new Error('Not authenticated');
       const userId = userResult.data.user.id;
 
-      let imageUrl = null;
-      if (image) {
+      let imageUrlResult = null;
+      if (imageUrl) {
         try {
           setStatusMessage({ text: 'Uploading image...', isError: false });
           // Use the progress callback
-          imageUrl = await uploadImage(
-            image, 
+          imageUrlResult = await uploadImage(
+            imageUrl, 
             (progress) => {
               setUploadProgress(progress);
             }
@@ -359,7 +370,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
             isError: true 
           });
           // Continue with the post creation without the image
-          imageUrl = null;
+          imageUrlResult = null;
         } finally {
           // Clear progress after a short delay
           setTimeout(() => setUploadProgress(null), 1000);
@@ -372,7 +383,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
         .insert([
           {
             content: html,
-            image_url: imageUrl,
+            image_url: imageUrlResult,
             background: selectedBackground,
             user_id: userId, // Use userId directly
             music_track_id: selectedTrack ? selectedTrack.id : null, // Add track ID

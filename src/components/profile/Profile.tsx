@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import styled from 'styled-components';
+import styled, { css, keyframes } from 'styled-components';
+import { ContentBlock } from 'draft-js';
 import { supabase } from '../../utils/supabaseClient';
 import { uploadImage } from '../../utils/cloudinaryUtils';
 import {
@@ -23,6 +24,7 @@ import {
 } from '../common/StyledComponents';
 import SimpleEditor, { SimpleEditorHandle } from '../common/SimpleEditor';
 import { searchDeezerTracks, DeezerTrack } from '../../utils/deezerClient';
+import Post from '../posts/Post'; // Import the Post component from posts directory
 
 const BioTextarea = styled.textarea`
   width: 100%;
@@ -167,22 +169,15 @@ const BackgroundOption = styled.div<{ $bg: string; $selected: boolean }>`
   }
 `;
 
-const PostCard = styled(Card)<{ $hasImage?: boolean }>`
-  position: relative;
-  transform: rotate(${props => Math.random() * 6 - 3}deg);
-  transition: all 0.3s ease;
-  box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.15);
-  padding: 20px;
-  
-  @media (min-width: 769px) {
-    height: ${props => props.$hasImage ? 'auto' : 'max-content'};
-    max-width: ${props => props.$hasImage ? '100%' : '300px'};
+// Define the keyframes for the pulse animation
+const pulseAnimation = keyframes`
+  0%, 100% {
+    transform: scale(1.03) rotate(${Math.random() * 4 - 2}deg);
+    box-shadow: 5px 5px 18px rgba(0, 0, 0, 0.25);
   }
-  
-  &:hover {
-    transform: rotate(0deg) scale(1.05);
-    box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.2);
-    z-index: 10;
+  50% {
+    transform: scale(1.05) rotate(${Math.random() * 4 - 2}deg);
+    box-shadow: 7px 7px 22px rgba(0, 0, 0, 0.3);
   }
 `;
 
@@ -658,9 +653,80 @@ const AudioPlayerStyled = styled.audio`
   }
 `;
 
+// Styled components for the post menu
+const PostMenuButton = styled.button`
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(255, 255, 255, 0.6);
+  border: none;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 16px;
+  color: #333;
+  transition: background 0.2s;
+  z-index: 11; // Ensure it's above hover effects
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.9);
+  }
+`;
+
+const PostMenuDropdown = styled.div`
+  position: absolute;
+  top: 40px; // Position below the button
+  right: 10px;
+  background: white;
+  border-radius: 6px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+  padding: 8px 0;
+  z-index: 12;
+  min-width: 100px;
+`;
+
+const PostMenuItem = styled.button`
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 8px 16px;
+  text-align: left;
+  cursor: pointer;
+  font-size: 14px;
+  color: #333;
+  
+  &:hover {
+    background: rgba(0, 0, 0, 0.05);
+  }
+  
+  &.delete {
+    color: #e74c3c;
+  }
+`;
+
+// Define a custom interface for our extended post type
+interface ExtendedPost {
+  id: string;
+  content: string;
+  image_url: string | null;
+  user_id: string;
+  created_at: string;
+  background?: string;
+  music_track_id?: string;
+  music_track_info?: DeezerTrack;
+  likes_count?: number;
+  is_liked?: boolean;
+  date?: string;
+}
+
 const Profile: React.FC = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
-  const [posts, setPosts] = useState<Post[]>([]);
+  const [posts, setPosts] = useState<ExtendedPost[]>([]);
   const [selectedBackground, setSelectedBackground] = useState(CARD_BACKGROUNDS[0]);
   const [activeTab, setActiveTab] = useState('posts');
   const [isEditingBio, setIsEditingBio] = useState(false);
@@ -686,6 +752,10 @@ const Profile: React.FC = () => {
   const progressInterval = useRef<NodeJS.Timeout | null>(null);
   const [selectedTrack, setSelectedTrack] = useState<DeezerTrack | null>(null);
   const [showSongSearch, setShowSongSearch] = useState(false);
+  const [currentlyPlayingPostId, setCurrentlyPlayingPostId] = useState<string | null>(null); // State for playing post
+  const [isProfileSongPlaying, setIsProfileSongPlaying] = useState(false); // State for profile song playback
+  const [showMenuForPost, setShowMenuForPost] = useState<string | null>(null); // State for post menu visibility
+  const [postLikes, setPostLikes] = useState<{[key: string]: boolean}>({});
 
   const defaultAvatar = '/default-avatar.png';
 
@@ -777,9 +847,50 @@ const Profile: React.FC = () => {
         if (postsError) throw postsError;
 
         // Add backgrounds to posts that don't have them
-        const postsWithBackgrounds = (postsData || []).map((post, index) => ({
-          ...post,
-          background: post.background || CARD_BACKGROUNDS[index % CARD_BACKGROUNDS.length]
+        const postsWithBackgrounds = await Promise.all((postsData || []).map(async (post, index) => {
+          // Get likes count for each post
+          const { count, error: countError } = await supabase
+            .from('likes')
+            .select('*', { count: 'exact', head: true })
+            .eq('post_id', post.id);
+          
+          let likesCount = 0;
+          if (!countError && count !== null) {
+            likesCount = count;
+          }
+          
+          // Check if current user has liked this post
+          let isLiked = false;
+          if (authUser) {
+            try {
+              const { data: likeData, error: likeError } = await supabase
+                .from('likes')
+                .select('id')
+                .eq('post_id', post.id)
+                .eq('user_id', authUser.id)
+                .limit(1);
+                
+              if (!likeError && likeData && likeData.length > 0) {
+                isLiked = true;
+              }
+            } catch (error) {
+              console.error('Error checking like status:', error);
+            }
+          }
+          
+          // Ensure music_track_info is properly typed
+          let typedMusicTrackInfo: DeezerTrack | undefined = undefined;
+          if (post.music_track_info) {
+            typedMusicTrackInfo = post.music_track_info as DeezerTrack;
+          }
+          
+          return {
+            ...post,
+            background: post.background || CARD_BACKGROUNDS[index % CARD_BACKGROUNDS.length],
+            likes_count: likesCount,
+            is_liked: isLiked,
+            music_track_info: typedMusicTrackInfo
+          };
         }));
 
         setPosts(postsWithBackgrounds);
@@ -876,6 +987,17 @@ const Profile: React.FC = () => {
       if (!editorRef.current || !user) return;
       const { html, raw } = editorRef.current.getContent();
       const currentImage = editorRef.current.getImage();
+
+      // Use same validation logic as in CreatePost.tsx
+      // Check for text content in html directly instead of relying on raw.blocks
+      const hasTextContent = html && html.trim() !== '' && html !== '<p></p>' && html !== '<p><br></p>';
+      
+      if (!hasTextContent && !currentImage && !selectedTrack) {
+        console.log('Attempted to create an empty post.');
+        // Optionally show a user-friendly message here
+        return; // Prevent creating empty post
+      }
+
       const currentDate = new Date().toISOString();
       const { data, error } = await supabase
         .from('posts')
@@ -920,6 +1042,101 @@ const Profile: React.FC = () => {
       setPosts(prev => prev.filter(post => post.id !== id));
     } catch (error) {
       console.error('Error deleting post:', error);
+    }
+  };
+
+  // Add handleLike function similar to Feed.tsx
+  const handleLike = async (postId: string) => {
+    try {
+      if (!user) return;
+      
+      const post = posts.find(p => p.id === postId);
+      if (!post) return;
+      
+      const isLiked = postLikes[postId] || false;
+      
+      if (isLiked) {
+        const { error } = await supabase
+          .from('likes')
+          .delete()
+          .match({ post_id: postId, user_id: user.id });
+          
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('likes')
+          .insert([{ post_id: postId, user_id: user.id }]);
+          
+        if (error) throw error;
+      }
+      
+      // Update local state
+      setPostLikes(prev => ({
+        ...prev, 
+        [postId]: !isLiked
+      }));
+      
+      // Refetch posts to get updated like counts
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+        
+      // Fetch user posts with like counts
+      const { data: postsData, error: postsError } = await supabase
+        .from('posts')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (postsError) throw postsError;
+
+      // Get likes count for each post
+      const formattedPosts = await Promise.all((postsData || []).map(async (post) => {
+        // Get likes count
+        const { count, error: countError } = await supabase
+          .from('likes')
+          .select('*', { count: 'exact', head: true })
+          .eq('post_id', post.id);
+          
+        let likesCount = 0;
+        if (!countError && count !== null) {
+          likesCount = count;
+        }
+        
+        // Check if current user has liked this post
+        let isLiked = false;
+        try {
+          const { data: likeData, error: likeError } = await supabase
+            .from('likes')
+            .select('id')
+            .eq('post_id', post.id)
+            .eq('user_id', user.id)
+            .limit(1);
+            
+          if (!likeError && likeData && likeData.length > 0) {
+            isLiked = true;
+          }
+        } catch (error) {
+          console.error('Error checking like status:', error);
+        }
+        
+        // Handle music track info with proper typing
+        const musicTrackInfo = post.music_track_info ? post.music_track_info as DeezerTrack : undefined;
+        
+        return {
+          ...post,
+          background: post.background || CARD_BACKGROUNDS[0],
+          likes_count: likesCount,
+          is_liked: isLiked,
+          music_track_info: musicTrackInfo
+        };
+      }));
+
+      setPosts(formattedPosts);
+    } catch (error) {
+      console.error('Error toggling like:', error);
     }
   };
 
@@ -1305,6 +1522,18 @@ const Profile: React.FC = () => {
                               controls 
                               src={user.music_track_info.preview} 
                               style={{ width: '100%' }}
+                              onPlay={() => {
+                                console.log('Profile audio playing');
+                                setIsProfileSongPlaying(true);
+                              }}
+                              onPause={() => {
+                                console.log('Profile audio paused');
+                                setIsProfileSongPlaying(false);
+                              }}
+                              onEnded={() => {
+                                console.log('Profile audio ended');
+                                setIsProfileSongPlaying(false);
+                              }}
                               onError={(e) => {
                                 console.error('Audio playback error:', e);
                                 // Automatically refresh when playback fails
@@ -1390,6 +1619,23 @@ const Profile: React.FC = () => {
             </Tab>
           </TabsHeader>
 
+          {/* Song Search Modal for Posts - Moved to top level */}
+          {showSongSearch && (
+            <SearchModal>
+              <SearchContent>
+                <h3>Add a song to your post</h3>
+                <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+                  <SearchInput type="text" placeholder="Search Deezer (artist or title)..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && searchMusic(searchQuery)} />
+                  <AquaButton onClick={() => searchMusic(searchQuery)} disabled={isSearching} style={{ minWidth: '80px' }}>{isSearching ? '...' : 'Search'}</AquaButton>
+                </div>
+                <SearchResults>{renderSearchResults()}</SearchResults>
+                <div style={{ textAlign: 'right', marginTop: '20px' }}>
+                  <AquaButton onClick={() => { setShowSongSearch(false); setSearchQuery(''); setSearchResults([]); }} style={{ background: '#eee', color: '#333' }}>Cancel</AquaButton>
+                </div>
+              </SearchContent>
+            </SearchModal>
+          )}
+
           <TabContainer>
             {activeTab === 'posts' && (
               <div>
@@ -1422,81 +1668,35 @@ const Profile: React.FC = () => {
                       </AquaButton>
                       <AquaButton onClick={handleAddPost} style={{ minWidth: '140px' }}>Add Post-it Note</AquaButton>
                     </div>
-                    {/* Song Search Modal */}
-                    {showSongSearch && (
-                      <SearchModal>
-                        <SearchContent>
-                          <h3>Add a song to your post</h3>
-                          <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-                            <SearchInput type="text" placeholder="Search Deezer (artist or title)..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && searchMusic(searchQuery)} />
-                            <AquaButton onClick={() => searchMusic(searchQuery)} disabled={isSearching} style={{ minWidth: '80px' }}>{isSearching ? '...' : 'Search'}</AquaButton>
-                          </div>
-                          <SearchResults>{renderSearchResults()}</SearchResults>
-                          <div style={{ textAlign: 'right', marginTop: '20px' }}>
-                            <AquaButton onClick={() => setShowSongSearch(false)} style={{ background: '#eee', color: '#333' }}>Cancel</AquaButton>
-                          </div>
-                        </SearchContent>
-                      </SearchModal>
-                    )}
                   </GlassPanel>
                 )}
                 <Grid>
                   {posts.length > 0 ? (
-                    posts.map((post, index) => (
-                      <PostCard key={post.id} $gradient $hasImage={!!post.image_url} style={{ background: post.background || CARD_BACKGROUNDS[index % CARD_BACKGROUNDS.length] }}>
-                        <div dangerouslySetInnerHTML={{ __html: post.content }} />
-                        {post.image_url && (
-                          <img src={post.image_url} alt="Post" style={{ maxWidth: '100%', marginTop: '10px', borderRadius: '4px' }} />
-                        )}
-                        {/* Song snippet display */}
-                        {post.music_track_info && (
-                          <PostMusicContainer>
-                            <MusicPlayer>
-                              <AlbumCover src={post.music_track_info?.album?.cover || '/default-album.png'} alt="Album Cover" />
-                              <SongInfo>
-                                <SongTitle>{post.music_track_info?.title}</SongTitle>
-                                <ArtistName>{post.music_track_info?.artist?.name || 'Unknown Artist'}</ArtistName>
-                                {post.music_track_info?.preview ? (
-                                  <AudioPlayerStyled
-                                    controls
-                                    src={post.music_track_info?.preview}
-                                    onError={async () => {
-                                      const title = post.music_track_info?.title;
-                                      const artist = post.music_track_info?.artist?.name;
-                                      if (!title || !artist) return;
-                                      const query = `${title} ${artist}`;
-                                      const results = await searchDeezerTracks(query);
-                                      if (results.length > 0) {
-                                        const match = results.find(track =>
-                                          track.title.toLowerCase() === title.toLowerCase() &&
-                                          track.artist.name.toLowerCase() === artist.toLowerCase()
-                                        ) || results[0];
-                                        // Update only in local state if you want, or just let the user refresh
-                                      }
-                                    }}
-                                  >
-                                    Your browser does not support the audio element.
-                                  </AudioPlayerStyled>
-                                ) : (
-                                  <small style={{ color: '#888', fontSize: '0.75em', display: 'block', marginTop: '5px' }}>
-                                    Preview not available
-                                  </small>
-                                )}
-                              </SongInfo>
-                            </MusicPlayer>
-                          </PostMusicContainer>
-                        )}
-                        <Divider />
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div>{new Date(post.created_at || post.date).toLocaleDateString()}</div>
-                          {isCurrentUser && isEditMode && (
-                            <AquaButton onClick={() => handleDeletePost(post.id)} style={{ height: '32px', padding: '6px 12px' }}>
-                              Delete
-                            </AquaButton>
-                          )}
-                        </div>
-                      </PostCard>
-                    ))
+                    posts.map((post) => {
+                      // Handle music track info with proper typing
+                      const musicTrackInfo = post.music_track_info ? post.music_track_info as DeezerTrack : undefined;
+                      
+                      return (
+                        <Post
+                          key={post.id}
+                          id={post.id}
+                          content={post.content}
+                          image_url={post.image_url}
+                          user_id={post.user_id}
+                          username={user?.username || 'Unknown'}
+                          avatar_url={user?.avatar_url || null}
+                          likes_count={post.likes_count ?? 0}
+                          is_liked={post.is_liked ?? false}
+                          onLike={handleLike}
+                          currentUserId={user?.id || null}
+                          onDelete={() => handleDeletePost(post.id)}
+                          created_at={post.created_at || (post.date ?? new Date().toISOString())}
+                          background={post.background || undefined}
+                          music_track_id={post.music_track_id}
+                          music_track_info={musicTrackInfo}
+                        />
+                      );
+                    })
                   ) : (
                     <EmptyPostsMessage>
                       <h3>No Post-it Notes Yet</h3>

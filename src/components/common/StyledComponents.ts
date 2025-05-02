@@ -561,12 +561,13 @@ export const Divider = styled.hr`
 
 export const Grid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, 1fr);
+  align-items: start;
   gap: 20px;
   margin-top: 20px;
   
   @media (max-width: 768px) {
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fill, 1fr);
     gap: 15px;
   }
   
