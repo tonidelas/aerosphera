@@ -60,6 +60,7 @@ interface PostData {
   };
   likes_count: number;
   is_liked: boolean;
+  updated_at?: string;
 }
 
 const Feed: React.FC = () => {
@@ -333,6 +334,19 @@ const Feed: React.FC = () => {
     }
   };
 
+  const handleEditPost = async (postId: string, newContent: string, newImage: string | null) => {
+    try {
+      // Update the post in local state immediately for UI responsiveness
+      setPosts(currentPosts => currentPosts.map(p =>
+        p.id === postId
+          ? { ...p, content: newContent, image_url: newImage, updated_at: new Date().toISOString() }
+          : p
+      ));
+    } catch (error) {
+      console.error('Error updating post in local state:', error);
+    }
+  };
+
   if (loadingPosts || loadingProfile) {
     return <LoadingIndicator>Loading Feed...</LoadingIndicator>;
   }
@@ -360,6 +374,7 @@ const Feed: React.FC = () => {
               likes_count={post.likes_count}
               is_liked={post.is_liked}
               onLike={handleLike}
+              onEdit={handleEditPost}
               currentUserId={currentUserId}
               onDelete={fetchPosts}
               created_at={post.created_at}

@@ -224,6 +224,7 @@ interface PostProps {
   onLike: (postId: string) => void;
   currentUserId: string | null;
   onDelete: () => void;
+  onEdit?: (postId: string, newContent: string, newImage: string | null) => void;
   created_at: string;
   background?: string;
   music_track_id?: string;
@@ -254,6 +255,7 @@ const Post: React.FC<PostProps> = ({
   user_id,
   currentUserId,
   onDelete,
+  onEdit,
   created_at,
   background,
   music_track_id,
@@ -327,7 +329,7 @@ const Post: React.FC<PostProps> = ({
   };
 
   const handleEditSave = async () => {
-    const newContent = editorRef.current ? editorRef.current.getContent().raw : editContent;
+    const newContent = editorRef.current ? editorRef.current.getContent().html : editContent;
     const newImage = editorRef.current ? editorRef.current.getImage() : editImage;
     try {
       const { error } = await supabase
@@ -337,7 +339,12 @@ const Post: React.FC<PostProps> = ({
       if (error) throw error;
       setEditing(false);
       setEdited(true);
-      onDelete(); // refresh feed
+      
+      if (onEdit) {
+        onEdit(id, newContent, newImage);
+      } else {
+        onDelete();
+      }
     } catch (error) {
       alert('Failed to update post.');
       console.error('Error updating post:', error);

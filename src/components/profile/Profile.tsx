@@ -722,6 +722,7 @@ interface ExtendedPost {
   likes_count?: number;
   is_liked?: boolean;
   date?: string;
+  updated_at?: string;
 }
 
 const Profile: React.FC = () => {
@@ -1042,6 +1043,20 @@ const Profile: React.FC = () => {
       setPosts(prev => prev.filter(post => post.id !== id));
     } catch (error) {
       console.error('Error deleting post:', error);
+    }
+  };
+
+  // Add a new function to handle post editing
+  const handleEditPost = async (postId: string, newContent: string, newImage: string | null) => {
+    try {
+      // Update the post in local state immediately for UI responsiveness
+      setPosts(prev => prev.map(post => 
+        post.id === postId
+          ? { ...post, content: newContent, image_url: newImage, updated_at: new Date().toISOString() }
+          : post
+      ));
+    } catch (error) {
+      console.error('Error updating post in local state:', error);
     }
   };
 
@@ -1688,6 +1703,7 @@ const Profile: React.FC = () => {
                           likes_count={post.likes_count ?? 0}
                           is_liked={post.is_liked ?? false}
                           onLike={handleLike}
+                          onEdit={handleEditPost}
                           currentUserId={user?.id || null}
                           onDelete={() => handleDeletePost(post.id)}
                           created_at={post.created_at || (post.date ?? new Date().toISOString())}

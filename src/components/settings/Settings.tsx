@@ -111,7 +111,7 @@ const Settings: React.FC = () => {
     try {
       // 1. Upload file to Supabase Storage
       const { error: uploadError } = await supabase.storage
-        .from('feed-backgrounds') // Replace with your bucket name
+        .from('feed-backgrounds') // Ensure this bucket exists in your Supabase project
         .upload(filePath, selectedFile, {
           cacheControl: '3600', // Optional: cache control
           upsert: true, // Overwrite if file with same name exists (optional, adjust as needed)
@@ -121,7 +121,7 @@ const Settings: React.FC = () => {
 
       // 2. Get public URL
       const { data: urlData } = supabase.storage
-        .from('feed-backgrounds') // Replace with your bucket name
+        .from('feed-backgrounds') // Ensure this bucket exists in your Supabase project
         .getPublicUrl(filePath);
 
       if (!urlData?.publicUrl) {
@@ -186,7 +186,7 @@ const Settings: React.FC = () => {
       // 3. (Optional but recommended) Remove file from Supabase Storage
        if (filePath) {
            const { error: removeError } = await supabase.storage
-               .from('feed-backgrounds') // Replace with your bucket name
+               .from('feed-backgrounds') // Ensure this bucket exists in your Supabase project
                .remove([filePath]); // remove expects an array of paths
 
            if (removeError) {
