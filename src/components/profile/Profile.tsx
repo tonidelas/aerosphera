@@ -4,6 +4,7 @@ import styled, { css, keyframes } from 'styled-components';
 import { ContentBlock } from 'draft-js';
 import { supabase } from '../../utils/supabaseClient';
 import { uploadImage } from '../../utils/cloudinaryUtils';
+import { extractYoutubeUrl } from '../../utils/youtubeUtils';
 import {
   WindowContainer,
   WindowFrame,
@@ -136,6 +137,7 @@ interface Post {
   created_at?: string;
   music_track_id?: string;
   music_track_info?: DeezerTrack;
+  youtube_video_url?: string | null;
 }
 
 interface UserProfile {
@@ -723,6 +725,7 @@ interface ExtendedPost {
   is_liked?: boolean;
   date?: string;
   updated_at?: string;
+  youtube_video_url?: string | null;
 }
 
 const Profile: React.FC = () => {
@@ -891,7 +894,8 @@ const Profile: React.FC = () => {
             background: post.background || CARD_BACKGROUNDS[index % CARD_BACKGROUNDS.length],
             likes_count: likesCount,
             is_liked: isLiked,
-            music_track_info: typedMusicTrackInfo
+            music_track_info: typedMusicTrackInfo,
+            youtube_video_url: post.youtube_video_url
           };
         }));
 
@@ -1000,6 +1004,9 @@ const Profile: React.FC = () => {
         return; // Prevent creating empty post
       }
 
+      // Extract YouTube URL from content if it exists
+      const detectedYoutubeUrl = extractYoutubeUrl(html);
+
       const currentDate = new Date().toISOString();
       const { data, error } = await supabase
         .from('posts')
@@ -1010,7 +1017,8 @@ const Profile: React.FC = () => {
             image_url: currentImage,
             background: selectedBackground,
             music_track_id: selectedTrack ? selectedTrack.id : null,
-            music_track_info: selectedTrack ? selectedTrack : null
+            music_track_info: selectedTrack ? selectedTrack : null,
+            youtube_video_url: detectedYoutubeUrl // Add detected URL
           }
         ])
         .select()
@@ -1048,12 +1056,12 @@ const Profile: React.FC = () => {
   };
 
   // Add a new function to handle post editing
-  const handleEditPost = async (postId: string, newContent: string, newImage: string | null) => {
+  const handleEditPost = async (postId: string, newContent: string, newImage: string | null, newYoutubeUrl?: string | null) => {
     try {
       // Update the post in local state immediately for UI responsiveness
       setPosts(prev => prev.map(post => 
         post.id === postId
-          ? { ...post, content: newContent, image_url: newImage, updated_at: new Date().toISOString() }
+          ? { ...post, content: newContent, image_url: newImage, youtube_video_url: newYoutubeUrl ?? post.youtube_video_url, updated_at: new Date().toISOString() }
           : post
       ));
     } catch (error) {
@@ -1740,6 +1748,7 @@ const Profile: React.FC = () => {
                           background={post.background || undefined}
                           music_track_id={post.music_track_id}
                           music_track_info={musicTrackInfo}
+                          youtube_video_url={post.youtube_video_url}
                         />
                       );
                     })

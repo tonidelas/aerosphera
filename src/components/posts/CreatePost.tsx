@@ -10,6 +10,7 @@ import {
   AquaButton,
   GlassInput,
 } from '../common/StyledComponents';
+import { extractYoutubeUrl } from '../../utils/youtubeUtils';
 
 // Reuse or adapt styled components from Profile.tsx or create new ones
 // Define Modal and Search components locally
@@ -259,16 +260,14 @@ interface CreatePostProps {
 const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedBackground, setSelectedBackground] = useState(CARD_BACKGROUNDS[0]);
-  const [statusMessage, setStatusMessage] = useState<{ text: string; isError: boolean } | null>(null);
+  const [statusMessage, setStatusMessage] = useState<{ message: string; isError: boolean } | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const editorRef = useRef<SimpleEditorHandle>(null);
-
-  // State for song search modal
+  const [selectedTrack, setSelectedTrack] = useState<DeezerTrack | null>(null);
   const [showSongSearch, setShowSongSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<DeezerTrack[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [selectedTrack, setSelectedTrack] = useState<DeezerTrack | null>(null);
 
   const searchMusic = async (query: string) => {
     if (!query.trim()) return;
@@ -287,7 +286,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
   const handleSelectTrack = (track: DeezerTrack) => {
     setSelectedTrack(track);
     setShowSongSearch(false);
-    setSearchQuery(''); // Reset search
+    setSearchQuery('');
     setSearchResults([]);
   };
 
@@ -322,11 +321,15 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
     const { html, raw } = editorRef.current.getContent();
     const imageUrl = editorRef.current.getImage();
     
+    // Detect if content contains a YouTube URL
+    const detectedYoutubeUrl = extractYoutubeUrl(html);
+    
     console.log('Post content debug:', { 
       html, 
       rawBlocks: raw?.blocks, 
       imageUrl, 
-      hasTrack: !!selectedTrack 
+      hasTrack: !!selectedTrack,
+      youtubeUrl: detectedYoutubeUrl 
     });
 
     // Improved check for empty post content
@@ -354,7 +357,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
       let imageUrlResult = null;
       if (imageUrl) {
         try {
-          setStatusMessage({ text: 'Uploading image...', isError: false });
+          setStatusMessage({ message: 'Uploading image...', isError: false });
           // Use the progress callback
           imageUrlResult = await uploadImage(
             imageUrl, 
@@ -366,7 +369,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
         } catch (imageError) {
           console.error('Error uploading image:', imageError);
           setStatusMessage({ 
-            text: 'Failed to upload image. Your post will be created without the image.', 
+            message: 'Failed to upload image. Your post will be created without the image.', 
             isError: true 
           });
           // Continue with the post creation without the image
@@ -377,7 +380,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
         }
       }
 
-      setStatusMessage({ text: 'Creating post...', isError: false });
+      setStatusMessage({ message: 'Creating post...', isError: false });
       const { error } = await supabase
         .from('posts')
         .insert([
@@ -385,25 +388,27 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
             content: html,
             image_url: imageUrlResult,
             background: selectedBackground,
-            user_id: userId, // Use userId directly
-            music_track_id: selectedTrack ? selectedTrack.id : null, // Add track ID
-            music_track_info: selectedTrack ? selectedTrack : null   // Add track info
+            user_id: userId,
+            music_track_id: selectedTrack ? selectedTrack.id : null,
+            music_track_info: selectedTrack ? selectedTrack : null,
+            youtube_video_url: detectedYoutubeUrl
           }
         ]);
 
       if (error) throw error;
 
       editorRef.current.reset();
-      setSelectedTrack(null); // Reset selected track
-      setStatusMessage({ text: 'Post created successfully!', isError: false });
+      setSelectedTrack(null);
+      setSelectedBackground(CARD_BACKGROUNDS[0]);
+      
+      setStatusMessage({ message: 'Post created successfully!', isError: false });
       setTimeout(() => setStatusMessage(null), 3000);
       onPostCreated();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating post:', error);
-      setStatusMessage({
-        text: 'Failed to create post. Please try again.',
-        isError: true
-      });
+      setStatusMessage({ message: error.message || 'Failed to create post. Please try again.', isError: true });
+      setUploadProgress(null);
+      setTimeout(() => setStatusMessage(null), 5000);
     } finally {
       setIsSubmitting(false);
     }
@@ -412,20 +417,17 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
   return (
     <CreatePostContainer>
       <form onSubmit={handleSubmit}>
-        <SimpleEditor ref={editorRef} placeholder="What's on your mind?" />
-
+        <SimpleEditor ref={editorRef} placeholder="What's on your mind? Paste a YouTube link to embed it!" />
+        
         {/* Selected Track Preview */}
         {selectedTrack && (
           <SelectedTrackPreview>
-             <AlbumCover
-              src={selectedTrack.album.cover || '/default-album.png'}
-              alt="Album Cover"
-            />
-            <SongInfo style={{ flexGrow: 1 }}>
+            <AlbumCover src={selectedTrack.album.cover || '/default-album.png'} alt="Album Cover" />
+            <SongInfo>
               <SongTitle>{selectedTrack.title}</SongTitle>
               <ArtistName>{selectedTrack.artist.name}</ArtistName>
             </SongInfo>
-            <RemoveTrackButton onClick={() => setSelectedTrack(null)} title="Remove song">
+            <RemoveTrackButton type="button" onClick={() => setSelectedTrack(null)} title="Remove song">
               ❌
             </RemoveTrackButton>
           </SelectedTrackPreview>
@@ -473,7 +475,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
 
         {statusMessage && (
           <StatusMessage $isError={statusMessage.isError}>
-            {statusMessage.text}
+            {statusMessage.message}
           </StatusMessage>
         )}
       </form>
@@ -504,7 +506,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
             </SearchResults>
             <div style={{ textAlign: 'right', marginTop: '20px' }}>
               <AquaButton
-                onClick={() => setShowSongSearch(false)}
+                onClick={() => { setShowSongSearch(false); setSearchQuery(''); setSearchResults([]); }}
                 style={{ background: '#eee', color: '#333' }}
               >
                 Cancel

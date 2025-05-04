@@ -61,6 +61,7 @@ interface PostData {
   likes_count: number;
   is_liked: boolean;
   updated_at?: string;
+  youtube_video_url?: string | null;
 }
 
 const Feed: React.FC = () => {
@@ -70,6 +71,27 @@ const Feed: React.FC = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [feedBgUrl, setFeedBgUrl] = useState<string | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+
+  // Suppress YouTube API errors that occur when ad blockers are active
+  useEffect(() => {
+    const originalConsoleError = console.error;
+    console.error = (...args) => {
+      const errorMsg = args[0]?.toString() || '';
+      // Filter out specific YouTube API errors
+      if (
+        errorMsg.includes('net::ERR_BLOCKED_BY_CLIENT') ||
+        errorMsg.includes('YouTube') || 
+        errorMsg.includes('youtube')
+      ) {
+        return; // Suppress these errors
+      }
+      originalConsoleError(...args);
+    };
+
+    return () => {
+      console.error = originalConsoleError;
+    };
+  }, []);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -254,7 +276,8 @@ const Feed: React.FC = () => {
           is_liked: userLikesSet.has(post.id),
           music_track_info: typeof post.music_track_info === 'string'
             ? JSON.parse(post.music_track_info)
-            : post.music_track_info
+            : post.music_track_info,
+          youtube_video_url: post.youtube_video_url
         };
       });
       
@@ -381,6 +404,7 @@ const Feed: React.FC = () => {
               background={post.background}
               music_track_id={post.music_track_id}
               music_track_info={post.music_track_info}
+              youtube_video_url={post.youtube_video_url}
             />
           ))
         ) : (

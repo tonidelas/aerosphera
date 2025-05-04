@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { supabase } from '../../utils/supabaseClient';
 import { Heart, HeartFill, ThreeDots } from 'react-bootstrap-icons';
 import { AquaButton } from '../common/StyledComponents';
-import SimpleEditor from '../common/SimpleEditor';
+import SimpleEditor, { SimpleEditorHandle } from '../common/SimpleEditor';
 import { DeezerTrack, searchDeezerTracks } from '../../utils/deezerClient';
+import { getYoutubeVideoId, extractYoutubeUrl } from '../../utils/youtubeUtils';
 
 const PostContainer = styled.div<{ $background?: string }>`
   background: ${ (props: { $background?: string }) => props.$background || 'white'};
@@ -229,6 +230,7 @@ interface PostProps {
   background?: string;
   music_track_id?: string;
   music_track_info?: DeezerTrack;
+  youtube_video_url?: string | null;
 }
 
 const formatDate = (dateString: string) => {
@@ -259,7 +261,8 @@ const Post: React.FC<PostProps> = ({
   created_at,
   background,
   music_track_id,
-  music_track_info
+  music_track_info,
+  youtube_video_url
 }) => {
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [editing, setEditing] = React.useState(false);
@@ -272,6 +275,20 @@ const Post: React.FC<PostProps> = ({
   const [localTrackInfo, setLocalTrackInfo] = React.useState(music_track_info);
   const postAudioRef = React.useRef<HTMLAudioElement>(null);
   const [isPostPlaying, setIsPostPlaying] = React.useState(false);
+
+  const [isLikedState, setIsLikedState] = React.useState(is_liked);
+  const [likesCountState, setLikesCountState] = React.useState(likes_count);
+  const [showMenu, setShowMenu] = React.useState(false);
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [editedContent, setEditedContent] = React.useState(content);
+  const [editedImage, setEditedImage] = React.useState<string | null>(image_url);
+  const [showConfirmDelete, setShowConfirmDelete] = React.useState(false);
+  const [isPlaying, setIsPlaying] = React.useState(false);
+  const audioRef = React.useRef<HTMLAudioElement | null>(null);
+  const editEditorRef = React.useRef<SimpleEditorHandle>(null);
+
+  const isOwner = currentUserId === user_id;
+  const defaultAvatar = '/default-avatar.png';
 
   React.useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -350,11 +367,21 @@ const Post: React.FC<PostProps> = ({
     const newContent = editorRef.current ? editorRef.current.getContent().html : editContent;
     const newImage = editorRef.current ? editorRef.current.getImage() : editImage;
     try {
+      // Extract YouTube URL from content if it exists
+      const newYoutubeUrl = extractYoutubeUrl(newContent);
+      
       const { error } = await supabase
         .from('posts')
-        .update({ content: newContent, image_url: newImage, updated_at: new Date().toISOString() })
+        .update({ 
+          content: newContent, 
+          image_url: newImage, 
+          youtube_video_url: newYoutubeUrl,
+          updated_at: new Date().toISOString() 
+        })
         .eq('id', id);
+      
       if (error) throw error;
+      
       setEditing(false);
       setEdited(true);
       
@@ -392,6 +419,9 @@ const Post: React.FC<PostProps> = ({
   const cancelDelete = () => {
     setShowDeleteConfirm(false);
   };
+
+  // Use the imported utility, prioritize youtube_video_url field but also check content
+  const videoId = youtube_video_url ? getYoutubeVideoId(youtube_video_url) : getYoutubeVideoId(content);
 
   return (
     <PostContainer $background={background}>
@@ -453,7 +483,23 @@ const Post: React.FC<PostProps> = ({
       
       <PostContent dangerouslySetInnerHTML={{ __html: content }} />
       
-      {image_url && <PostImage src={image_url} alt="Post content" />}
+      {image_url && !videoId && (
+        <PostImage src={image_url} alt="Post image" />
+      )}
+      
+      {/* YouTube Video Embed */}
+      {videoId && (
+        <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, overflow: 'hidden', marginBottom: '12px' }}>
+          <iframe
+            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+            src={`https://www.youtube.com/embed/${videoId}`}
+            title="YouTube video player"
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          ></iframe>
+        </div>
+      )}
       
       {localTrackInfo && (
         <PostMusicContainer>
