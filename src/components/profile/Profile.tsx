@@ -1810,7 +1810,7 @@ const Profile: React.FC = () => {
                           is_liked={post.is_liked ?? false}
                           onLike={handleLike}
                           onEdit={handleEditPost}
-                          currentUserId={user?.id || null}
+                          currentUserId={isCurrentUser ? user?.id : null}
                           onDelete={() => handleDeletePost(post.id)}
                           created_at={post.created_at || (post.date ?? new Date().toISOString())}
                           background={post.background || undefined}

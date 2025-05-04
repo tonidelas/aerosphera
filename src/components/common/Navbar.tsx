@@ -409,11 +409,11 @@ const Navbar: React.FC = () => {
                 <NavLink as={Link} to="/feed" className={location.pathname === '/feed' ? 'active' : ''}>
                   Feed
                 </NavLink>
-                <NavLink as={Link} to="/profile" className={location.pathname === '/profile' ? 'active' : ''}>
-                  Profile
-                </NavLink>
                 <NavLink as={Link} to="/search" className={location.pathname === '/search' ? 'active' : ''}>
                   Search
+                </NavLink>
+                <NavLink as={Link} to="/profile" className={location.pathname === '/profile' ? 'active' : ''}>
+                  Profile
                 </NavLink>
                 <NavLink as={Link} to="/settings" className={location.pathname === '/settings' ? 'active' : ''}>
                   Settings
@@ -449,11 +449,11 @@ const Navbar: React.FC = () => {
             <NavLink as={Link} to="/feed" onClick={closeMobileMenu} className={location.pathname === '/feed' ? 'active' : ''}>
               Feed
             </NavLink>
-            <NavLink as={Link} to="/profile" onClick={closeMobileMenu} className={location.pathname === '/profile' ? 'active' : ''}>
-              Profile
-            </NavLink>
             <NavLink as={Link} to="/search" onClick={closeMobileMenu} className={location.pathname === '/search' ? 'active' : ''}>
               Search
+            </NavLink>
+            <NavLink as={Link} to="/profile" onClick={closeMobileMenu} className={location.pathname === '/profile' ? 'active' : ''}>
+              Profile
             </NavLink>
             <NavLink as={Link} to="/settings" onClick={closeMobileMenu} className={location.pathname === '/settings' ? 'active' : ''}>
               Settings
@@ -493,11 +493,11 @@ const Navbar: React.FC = () => {
               <DockIcon $active={location.pathname === '/feed'} to="/feed">
                 🏠
               </DockIcon>
-              <DockIcon $active={location.pathname === '/profile'} to="/profile">
-                👤
-              </DockIcon>
               <DockIcon $active={location.pathname === '/search'} to="/search">
                 🔍
+              </DockIcon>
+              <DockIcon $active={location.pathname === '/profile'} to="/profile">
+                👤
               </DockIcon>
               <DockIcon $active={location.pathname === '/settings'} to="/settings">
                 ⚙️
