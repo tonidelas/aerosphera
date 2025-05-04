@@ -1310,11 +1310,12 @@ const Profile: React.FC = () => {
     }
   };
 
-  const renderSearchResults = () => {
+  // Modify renderSearchResults to accept an onSelect callback
+  const renderSearchResults = (onSelect: (track: DeezerTrack) => void) => {
     if (isSearching) return <p style={{ textAlign: 'center', color: '#666' }}>Searching...</p>;
     if (searchResults.length === 0 && searchQuery && !isSearching) return <p style={{ textAlign: 'center', color: '#666' }}>No tracks found.</p>;
     return searchResults.map(track => (
-      <SongResult key={track.id} onClick={() => { setSelectedTrack(track); setShowSongSearch(false); setSearchQuery(''); setSearchResults([]); }}>
+      <SongResult key={track.id} onClick={() => onSelect(track)}>
         <AlbumCover src={track.album.cover || '/default-album.png'} alt="Album Cover" />
         <SongInfo>
           <SongTitle>{track.title}</SongTitle>
@@ -1667,7 +1668,12 @@ const Profile: React.FC = () => {
                   <SearchInput type="text" placeholder="Search Deezer (artist or title)..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && searchMusic(searchQuery)} />
                   <AquaButton onClick={() => searchMusic(searchQuery)} disabled={isSearching} style={{ minWidth: '80px' }}>{isSearching ? '...' : 'Search'}</AquaButton>
                 </div>
-                <SearchResults>{renderSearchResults()}</SearchResults>
+                <SearchResults>{renderSearchResults((track) => { 
+                  setSelectedTrack(track); 
+                  setShowSongSearch(false); 
+                  setSearchQuery(''); 
+                  setSearchResults([]); 
+                })}</SearchResults>
                 <div style={{ textAlign: 'right', marginTop: '20px' }}>
                   <AquaButton onClick={() => { setShowSongSearch(false); setSearchQuery(''); setSearchResults([]); }} style={{ background: '#eee', color: '#333' }}>Cancel</AquaButton>
                 </div>
@@ -1781,7 +1787,7 @@ const Profile: React.FC = () => {
                   </AquaButton>
                 </div>
                 <SearchResults>
-                  {renderSearchResults()}
+                  {renderSearchResults(handleSelectTrack)}
                 </SearchResults>
                 <div style={{ textAlign: 'right', marginTop: '20px' }}>
                   <AquaButton
