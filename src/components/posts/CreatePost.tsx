@@ -361,15 +361,24 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
       let imageUrlResult = null;
       if (imageUrl) {
         try {
-          setStatusMessage({ message: 'Uploading image...', isError: false });
-          // Use the progress callback
-          imageUrlResult = await uploadImage(
-            imageUrl, 
-            (progress) => {
-              setUploadProgress(progress);
-            }
-          );
-          setUploadProgress(100); // Ensure we show 100% when done
+          // Handle File objects (which is what SimpleEditor.getImage() returns)
+          if (imageUrl instanceof File) {
+            setStatusMessage({ message: 'Uploading image...', isError: false });
+            // Use the progress callback
+            imageUrlResult = await uploadImage(
+              imageUrl, 
+              (progress) => {
+                setUploadProgress(progress);
+              }
+            );
+            setUploadProgress(100); // Ensure we show 100% when done
+          } else {
+            console.error('Invalid image format:', typeof imageUrl);
+            setStatusMessage({ 
+              message: 'Invalid image format. Your post will be created without the image.', 
+              isError: true 
+            });
+          }
         } catch (imageError) {
           console.error('Error uploading image:', imageError);
           setStatusMessage({ 

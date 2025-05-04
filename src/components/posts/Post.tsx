@@ -536,8 +536,19 @@ const Post: React.FC<PostProps> = ({
       
       <PostContent dangerouslySetInnerHTML={{ __html: formattedContent }} />
       
-      {image_url && !videoId && (
-        <PostImage src={image_url} alt="Post image" />
+      {image_url && 
+        image_url !== "[Post image]" && 
+        !image_url.includes("[Post image]") && 
+        !videoId && (
+        <PostImage 
+          src={image_url} 
+          alt="Post content" 
+          onError={(e) => {
+            // Handle image load errors by hiding the broken image
+            console.error("Failed to load image:", image_url);
+            e.currentTarget.style.display = 'none';
+          }} 
+        />
       )}
       
       {/* YouTube Video Embed */}
