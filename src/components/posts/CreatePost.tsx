@@ -10,7 +10,7 @@ import {
   AquaButton,
   GlassInput,
 } from '../common/StyledComponents';
-import { extractYoutubeUrl } from '../../utils/youtubeUtils';
+import { extractYoutubeUrl, formatYoutubeLinks } from '../../utils/youtubeUtils';
 
 // Reuse or adapt styled components from Profile.tsx or create new ones
 // Define Modal and Search components locally
@@ -321,11 +321,15 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
     const { html, raw } = editorRef.current.getContent();
     const imageUrl = editorRef.current.getImage();
     
+    // Format YouTube links in post content
+    const formattedHtml = formatYoutubeLinks(html);
+    
     // Detect if content contains a YouTube URL
-    const detectedYoutubeUrl = extractYoutubeUrl(html);
+    const detectedYoutubeUrl = extractYoutubeUrl(formattedHtml);
     
     console.log('Post content debug:', { 
-      html, 
+      originalHtml: html,
+      formattedHtml, 
       rawBlocks: raw?.blocks, 
       imageUrl, 
       hasTrack: !!selectedTrack,
@@ -334,7 +338,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
 
     // Improved check for empty post content
     // Check for text content in html or raw blocks
-    const hasText = html && html.trim() !== '' && html !== '<p></p>' && html !== '<p><br></p>';
+    const hasText = formattedHtml && formattedHtml.trim() !== '' && formattedHtml !== '<p></p>' && formattedHtml !== '<p><br></p>';
     const hasImage = !!imageUrl;
     const hasTrack = !!selectedTrack;
     
@@ -385,7 +389,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
         .from('posts')
         .insert([
           {
-            content: html,
+            content: formattedHtml, // Use the formatted HTML with highlighted YouTube links
             image_url: imageUrlResult,
             background: selectedBackground,
             user_id: userId,

@@ -5,7 +5,7 @@ import { Heart, HeartFill, ThreeDots } from 'react-bootstrap-icons';
 import { AquaButton } from '../common/StyledComponents';
 import SimpleEditor, { SimpleEditorHandle } from '../common/SimpleEditor';
 import { DeezerTrack, searchDeezerTracks } from '../../utils/deezerClient';
-import { getYoutubeVideoId, extractYoutubeUrl } from '../../utils/youtubeUtils';
+import { getYoutubeVideoId, extractYoutubeUrl, formatYoutubeLinks } from '../../utils/youtubeUtils';
 import { useSuppressYouTubeErrors } from '../../utils/errorHandling';
 
 const PostContainer = styled.div<{ $background?: string }>`
@@ -57,9 +57,55 @@ const PostContent = styled.div`
   p {
     margin: 0 0 10px 0;
   }
+  
+  /* Style YouTube links to make them stand out */
+  .youtube-link {
+    color: #3498db;
+    font-weight: 500;
+    text-decoration: none;
+    padding: 3px 8px 3px 5px;
+    border-radius: 16px;
+    background-color: rgba(52, 152, 219, 0.1);
+    border: 1px solid rgba(52, 152, 219, 0.2);
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.95em;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-break: break-all;
+    margin: 0 2px;
+  }
+  
+  .youtube-link:hover {
+    background-color: rgba(52, 152, 219, 0.2);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
+  }
+  
+  .youtube-link:before {
+    content: "▶";
+    font-size: 0.75em;
+    padding: 2px;
+    background: #3498db;
+    color: white;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+  }
 
   @media (max-width: 480px) {
     font-size: 0.95rem;
+    
+    .youtube-link {
+      font-size: 0.9em;
+    }
   }
 `;
 
@@ -427,6 +473,9 @@ const Post: React.FC<PostProps> = ({
   // Use the imported utility, prioritize youtube_video_url field but also check content
   const videoId = youtube_video_url ? getYoutubeVideoId(youtube_video_url) : getYoutubeVideoId(content);
 
+  // Format the content to ensure YouTube links are properly highlighted
+  const formattedContent = formatYoutubeLinks(content);
+
   return (
     <PostContainer $background={background}>
       {showDeleteConfirm && (
@@ -485,7 +534,7 @@ const Post: React.FC<PostProps> = ({
         )}
       </PostHeader>
       
-      <PostContent dangerouslySetInnerHTML={{ __html: content }} />
+      <PostContent dangerouslySetInnerHTML={{ __html: formattedContent }} />
       
       {image_url && !videoId && (
         <PostImage src={image_url} alt="Post image" />
