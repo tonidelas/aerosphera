@@ -6,6 +6,7 @@ import { AquaButton } from '../common/StyledComponents';
 import SimpleEditor, { SimpleEditorHandle } from '../common/SimpleEditor';
 import { DeezerTrack, searchDeezerTracks } from '../../utils/deezerClient';
 import { getYoutubeVideoId, extractYoutubeUrl } from '../../utils/youtubeUtils';
+import { useSuppressYouTubeErrors } from '../../utils/errorHandling';
 
 const PostContainer = styled.div<{ $background?: string }>`
   background: ${ (props: { $background?: string }) => props.$background || 'white'};
@@ -289,6 +290,9 @@ const Post: React.FC<PostProps> = ({
 
   const isOwner = currentUserId === user_id;
   const defaultAvatar = '/default-avatar.png';
+
+  // Use our custom hook to suppress YouTube errors
+  useSuppressYouTubeErrors();
 
   React.useEffect(() => {
     function handleClickOutside(event: MouseEvent) {

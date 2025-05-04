@@ -5,6 +5,7 @@ import Post from './Post';
 import CreatePost from './CreatePost';
 import { DeezerTrack } from '../../utils/deezerClient';
 import { Session } from '@supabase/supabase-js';
+import { useSuppressYouTubeErrors } from '../../utils/errorHandling';
 
 const FeedContainer = styled.div`
   max-width: 600px;
@@ -72,26 +73,8 @@ const Feed: React.FC = () => {
   const [feedBgUrl, setFeedBgUrl] = useState<string | null>(null);
   const [session, setSession] = useState<Session | null>(null);
 
-  // Suppress YouTube API errors that occur when ad blockers are active
-  useEffect(() => {
-    const originalConsoleError = console.error;
-    console.error = (...args) => {
-      const errorMsg = args[0]?.toString() || '';
-      // Filter out specific YouTube API errors
-      if (
-        errorMsg.includes('net::ERR_BLOCKED_BY_CLIENT') ||
-        errorMsg.includes('YouTube') || 
-        errorMsg.includes('youtube')
-      ) {
-        return; // Suppress these errors
-      }
-      originalConsoleError(...args);
-    };
-
-    return () => {
-      console.error = originalConsoleError;
-    };
-  }, []);
+  // Use our custom hook to suppress YouTube errors
+  useSuppressYouTubeErrors();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {

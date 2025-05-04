@@ -5,6 +5,7 @@ import { ContentBlock } from 'draft-js';
 import { supabase } from '../../utils/supabaseClient';
 import { uploadImage } from '../../utils/cloudinaryUtils';
 import { extractYoutubeUrl } from '../../utils/youtubeUtils';
+import { useSuppressYouTubeErrors } from '../../utils/errorHandling';
 import {
   WindowContainer,
   WindowFrame,
@@ -761,8 +762,12 @@ const Profile: React.FC = () => {
   const [showMenuForPost, setShowMenuForPost] = useState<string | null>(null); // State for post menu visibility
   const [postLikes, setPostLikes] = useState<{[key: string]: boolean}>({});
   const profileAudioRef = useRef<HTMLAudioElement>(null); // Add ref for profile audio
+  const [isUsernameSaving, setIsUsernameSaving] = useState(false);
 
   const defaultAvatar = '/default-avatar.png';
+
+  // Use our custom hook to suppress YouTube errors
+  useSuppressYouTubeErrors();
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -838,6 +843,8 @@ const Profile: React.FC = () => {
         if (profileData && typeof profileData.music_track_id === 'number') {
           profileData.music_track_id = String(profileData.music_track_id);
         }
+        
+        // Always use the data directly from the database for state initialization
         setUser(profileData);
         setNewBio(profileData?.bio || '');
         setNewUsername(profileData?.username || '');
@@ -908,6 +915,8 @@ const Profile: React.FC = () => {
     };
 
     fetchUserData();
+    
+    // Re-fetch whenever userId changes to ensure data is fresh
   }, [navigate, userId]);
 
   // Debug effect to log user data when loaded
@@ -951,20 +960,38 @@ const Profile: React.FC = () => {
   };
 
   const handleSaveUsername = async () => {
-    if (!user || !newUsername.trim()) return;
+    if (!user || !newUsername.trim() || isUsernameSaving) return;
 
     try {
-      const { error } = await supabase
+      setIsUsernameSaving(true);
+      
+      // Store username in a local variable to ensure consistency
+      const usernameToSave = newUsername.trim();
+      
+      const { data, error } = await supabase
         .from('profiles')
-        .update({ username: newUsername })
-        .eq('id', user.id);
+        .update({ username: usernameToSave })
+        .eq('id', user.id)
+        .select()
+        .single();
 
       if (error) throw error;
-
-      setUser(prev => prev ? { ...prev, username: newUsername } : null);
+      
+      // Update the user in state with the data returned from the database
+      // This ensures we're using the value that was actually saved
+      setUser(data);
+      
+      // Also update the local newUsername value to match what's in the database
+      setNewUsername(data.username);
       setIsEditingUsername(false);
+      
+      console.log('Username successfully updated to:', data.username);
     } catch (error) {
       console.error('Error saving username:', error);
+      // If there was an error, revert to the original username
+      setNewUsername(user.username);
+    } finally {
+      setIsUsernameSaving(false);
     }
   };
 
@@ -1501,9 +1528,19 @@ const Profile: React.FC = () => {
                         type="text"
                         value={newUsername}
                         onChange={(e) => setNewUsername(e.target.value)}
+                        disabled={isUsernameSaving}
                       />
-                      <AquaButton onClick={handleSaveUsername} style={{ height: '34px', padding: '0 12px' }}>
-                        Save
+                      <AquaButton 
+                        onClick={handleSaveUsername} 
+                        style={{ 
+                          height: '34px', 
+                          padding: '0 12px',
+                          opacity: isUsernameSaving ? 0.7 : 1,
+                          cursor: isUsernameSaving ? 'not-allowed' : 'pointer'
+                        }}
+                        disabled={isUsernameSaving}
+                      >
+                        {isUsernameSaving ? 'Saving...' : 'Save'}
                       </AquaButton>
                     </>
                   ) : (
