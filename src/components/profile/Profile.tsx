@@ -76,6 +76,7 @@ const UsernameWrapper = styled.div`
   align-items: center;
   gap: 8px;
   margin-bottom: 10px;
+  flex-wrap: wrap;
   
   h2 {
     margin: 0;
@@ -97,6 +98,13 @@ const UsernameInput = styled(GlassInput)`
   width: auto;
   min-width: 150px;
   margin-right: 5px;
+  
+  @media (max-width: 480px) {
+    width: 100%;
+    min-width: 0;
+    margin-right: 0;
+    margin-bottom: 8px;
+  }
 `;
 
 const ProfilePhoto = styled.img`
@@ -742,6 +750,7 @@ const Profile: React.FC = () => {
   const [isCurrentUser, setIsCurrentUser] = useState(true); // Whether viewing own profile
   const [isEditMode, setIsEditMode] = useState(false); // Whether edit mode is enabled
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false); // For logout confirmation
+  const [isMobileView, setIsMobileView] = useState(false); // For responsive design
   const editorRef = useRef<SimpleEditorHandle>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
@@ -768,6 +777,24 @@ const Profile: React.FC = () => {
 
   // Use our custom hook to suppress YouTube errors
   useSuppressYouTubeErrors();
+
+  // Add useEffect for responsive design
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileView(window.innerWidth <= 480);
+    };
+    
+    // Set initial value
+    handleResize();
+    
+    // Add event listener
+    window.addEventListener('resize', handleResize);
+    
+    // Clean up
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -1536,7 +1563,11 @@ const Profile: React.FC = () => {
                           height: '34px', 
                           padding: '0 12px',
                           opacity: isUsernameSaving ? 0.7 : 1,
-                          cursor: isUsernameSaving ? 'not-allowed' : 'pointer'
+                          cursor: isUsernameSaving ? 'not-allowed' : 'pointer',
+                          ...(isMobileView ? {
+                            width: '100%',
+                            marginTop: '0'
+                          } : {})
                         }}
                         disabled={isUsernameSaving}
                       >
