@@ -278,6 +278,7 @@ interface PostProps {
   music_track_id?: string;
   music_track_info?: DeezerTrack;
   youtube_video_url?: string | null;
+  onProfileClick?: (userId: string) => void;
 }
 
 const formatDate = (dateString: string) => {
@@ -309,7 +310,8 @@ const Post: React.FC<PostProps> = ({
   background,
   music_track_id,
   music_track_info,
-  youtube_video_url
+  youtube_video_url,
+  onProfileClick
 }) => {
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [editing, setEditing] = React.useState(false);
@@ -476,6 +478,13 @@ const Post: React.FC<PostProps> = ({
   // Format the content to ensure YouTube links are properly highlighted
   const formattedContent = formatYoutubeLinks(content);
 
+  // Function to handle profile click
+  const handleProfileClick = () => {
+    if (onProfileClick) {
+      onProfileClick(user_id);
+    }
+  };
+
   return (
     <PostContainer $background={background}>
       {showDeleteConfirm && (
@@ -510,10 +519,17 @@ const Post: React.FC<PostProps> = ({
       <PostHeader style={{ position: 'relative' }}>
         <Avatar 
           src={avatar_url || 'https://via.placeholder.com/40'} 
-          alt={username}
+          alt={username} 
+          onClick={handleProfileClick}
+          style={{ cursor: onProfileClick ? 'pointer' : 'default' }}
         />
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <Username>{username}</Username>
+          <Username 
+            onClick={handleProfileClick}
+            style={{ cursor: onProfileClick ? 'pointer' : 'default' }}
+          >
+            {username}
+          </Username>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{ color: '#888', fontSize: 13 }}>{formatDate(created_at)}</span>
             {edited && <span style={{ color: '#888', fontSize: 13 }}>(Edited)</span>}

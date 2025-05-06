@@ -6,6 +6,7 @@ import CreatePost from './CreatePost';
 import { DeezerTrack } from '../../utils/deezerClient';
 import { Session } from '@supabase/supabase-js';
 import { useSuppressYouTubeErrors } from '../../utils/errorHandling';
+import { useNavigate } from 'react-router-dom';
 
 const FeedContainer = styled.div`
   max-width: 600px;
@@ -72,6 +73,7 @@ const Feed: React.FC = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [feedBgUrl, setFeedBgUrl] = useState<string | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const navigate = useNavigate();
 
   // Use our custom hook to suppress YouTube errors
   useSuppressYouTubeErrors();
@@ -353,6 +355,10 @@ const Feed: React.FC = () => {
     }
   };
 
+  const handleProfileClick = (userId: string) => {
+    navigate(`/profile/${userId}`);
+  };
+
   if (loadingPosts || loadingProfile) {
     return <LoadingIndicator>Loading Feed...</LoadingIndicator>;
   }
@@ -388,6 +394,7 @@ const Feed: React.FC = () => {
               music_track_id={post.music_track_id}
               music_track_info={post.music_track_info}
               youtube_video_url={post.youtube_video_url}
+              onProfileClick={handleProfileClick}
             />
           ))
         ) : (
