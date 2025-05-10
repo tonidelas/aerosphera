@@ -6,6 +6,10 @@ interface GlobalStylesProps {
 }
 
 export const GlobalStyles = createGlobalStyle<GlobalStylesProps>`
+  html, body, #root { /* Assuming your app is rendered into a div with id 'root' */
+    height: 100%;
+  }
+
   * {
     margin: 0;
     padding: 0;
@@ -39,4 +43,4 @@ export const GlobalStyles = createGlobalStyle<GlobalStylesProps>`
   input, textarea, select {
     font-family: inherit;
   }
-`; 
+`;

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import styled from 'styled-components'; // Import styled-components
 import { ThemeProvider } from './styles/ThemeProvider';
 import GlobalStyles from './styles/GlobalStyles';
 import Navbar from './components/common/Navbar';
@@ -54,6 +55,19 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return isAuthenticated ? <>{children}</> : null;
 };
 
+const AppContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+`;
+
+const ContentWrapper = styled.main`
+  flex-grow: 1;
+  overflow-y: auto; /* Allows content to scroll if it exceeds viewport */
+  display: flex; /* Ensure children can also use height: 100% */
+  flex-direction: column; /* Ensure children can also use height: 100% */
+`;
+
 const App: React.FC = () => {
   // Check if user is logged in
   const isLoggedIn = !!localStorage.getItem('user');
@@ -61,68 +75,72 @@ const App: React.FC = () => {
   return (
     <ThemeProvider>
       <GlobalStyles />
-      <Navbar />
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route 
-          path="/profile" 
-          element={
-            <ProtectedRoute>
-              <Profile />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/profile/:userId" 
-          element={
-            <ProtectedRoute>
-              <Profile />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/search" 
-          element={
-            <ProtectedRoute>
-              <Search />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/feed" 
-          element={
-            <ProtectedRoute>
-              <Feed />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/settings" 
-          element={
-            <ProtectedRoute>
-              <Settings />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/chatrooms"
-          element={
-            <ProtectedRoute>
-              <Chatrooms />
-            </ProtectedRoute>
-          }
-        />
-        <Route 
-          path="/chatrooms/:id"
-          element={
-            <ProtectedRoute>
-              <Chatroom />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="/" element={<Navigate to={isLoggedIn ? "/feed" : "/login"} replace />} />
-      </Routes>
+      <AppContainer>
+        <Navbar />
+        <ContentWrapper>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route 
+              path="/profile" 
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/profile/:userId" 
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/search" 
+              element={
+                <ProtectedRoute>
+                  <Search />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/feed" 
+              element={
+                <ProtectedRoute>
+                  <Feed />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/settings" 
+              element={
+                <ProtectedRoute>
+                  <Settings />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/chatrooms"
+              element={
+                <ProtectedRoute>
+                  <Chatrooms />
+                </ProtectedRoute>
+              }
+            />
+            <Route 
+              path="/chatrooms/:id"
+              element={
+                <ProtectedRoute>
+                  <Chatroom />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/" element={<Navigate to={isLoggedIn ? "/feed" : "/login"} replace />} />
+          </Routes>
+        </ContentWrapper>
+      </AppContainer>
     </ThemeProvider>
   );
 };

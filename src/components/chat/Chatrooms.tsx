@@ -1,8 +1,8 @@
 import React, { useState, useEffect, FormEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom'; // Added useNavigate
 import { supabase } from '../../utils/supabaseClient';
-import { Chatroom, UserProfile } from '../../types/chat'; // Assuming UserProfile is also in chat.d.ts or imported elsewhere
-import styles from './Chatrooms.module.css'; // We'll create this CSS module
+import { Chatroom, UserProfile } from '../../types/chat';
+import styles from './Chatrooms.module.css';
 
 const Chatrooms = () => {
   const [chatrooms, setChatrooms] = useState<Chatroom[]>([]);
@@ -10,6 +10,7 @@ const Chatrooms = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<UserProfile | null>(null);
+  const navigate = useNavigate(); // Initialize useNavigate
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -130,7 +131,35 @@ const Chatrooms = () => {
     }
   };
 
-  if (loading && !chatrooms.length) {
+  const handleDeleteChatroom = async (chatroomId: string, createdByUserId?: string) => {
+    if (!user || user.id !== createdByUserId) {
+      setError("You can only delete chatrooms you created.");
+      return;
+    }
+
+    if (!window.confirm("Are you sure you want to delete this chatroom? This action cannot be undone.")) {
+      return;
+    }
+
+    setLoading(true); // Indicate loading state for deletion
+    const { error: deleteError } = await supabase
+      .from('chatrooms')
+      .delete()
+      .eq('id', chatroomId);
+
+    if (deleteError) {
+      console.error('Error deleting chatroom:', deleteError);
+      setError('Failed to delete chatroom. ' + deleteError.message);
+    } else {
+      setError(null);
+      // Realtime subscription should remove it from the list.
+      // Optionally, navigate away if the current chatroom was deleted, though this component is the list view.
+      console.log(`Chatroom ${chatroomId} deleted successfully.`);
+    }
+    setLoading(false);
+  };
+
+  if (loading && !chatrooms.length && !error) { // Added !error to prevent showing loading when an error is present
     return <div className={styles.loading}>Loading chatrooms...</div>;
   }
 
@@ -168,9 +197,21 @@ const Chatrooms = () => {
             <Link to={`/chatrooms/${room.id}`} className={styles.link}>
               {room.name}
             </Link>
-            <span className={styles.createdAt}>
-              Created: {new Date(room.created_at).toLocaleDateString()}
-            </span>
+            <div className={styles.roomActions}> {/* Container for date and button */}
+              <span className={styles.createdAt}>
+                Created: {new Date(room.created_at).toLocaleDateString()}
+              </span>
+              {user && room.user_id === user.id && (
+                <button 
+                  onClick={() => handleDeleteChatroom(room.id, room.user_id)}
+                  className={styles.deleteButton}
+                  disabled={loading} // Disable button while any loading operation is in progress
+                  title="Delete Chatroom"
+                >
+                  🗑️
+                </button>
+              )}
+            </div>
           </li>
         ))}
       </ul>
