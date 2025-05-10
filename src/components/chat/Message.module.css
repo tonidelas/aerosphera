@@ -1,0 +1,99 @@
+\
+.messageItem {
+  display: flex;
+  margin-bottom: 10px;
+  max-width: 75%;
+  align-self: flex-start; /* Default for other users */
+}
+
+.messageItem.currentUser {
+  align-self: flex-end;
+}
+
+.messageContent {
+  display: flex;
+  align-items: flex-end; /* Align avatar with bottom of bubble */
+  gap: 8px;
+}
+
+.messageItem.currentUser .messageContent {
+  flex-direction: row-reverse; /* Avatar on the right for current user */
+}
+
+.avatar {
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #ddd; /* Subtle border for avatar */
+}
+
+.bubble {
+  padding: 10px 15px;
+  border-radius: 18px;
+  background-color: #e9e9eb; /* Default bubble color for others */
+  color: #000;
+  position: relative; /* For timestamp positioning if needed */
+}
+
+.messageItem.currentUser .bubble {
+  background-color: #007bff; /* Bubble color for current user */
+  color: white;
+}
+
+.senderName {
+  font-size: 0.8em;
+  font-weight: bold;
+  margin-bottom: 4px;
+  color: #555; /* Slightly muted sender name */
+}
+
+.messageItem.currentUser .senderName {
+  /* Current user doesn't need to see their own name on each message usually */
+  display: none; 
+}
+
+.text {
+  margin: 0;
+  word-wrap: break-word; /* Ensure long words don't break layout */
+  white-space: pre-wrap; /* Preserve line breaks and spaces */
+  font-size: 0.95em;
+}
+
+.timestamp {
+  font-size: 0.75em;
+  color: #888; /* Muted timestamp color */
+  margin-top: 5px;
+  text-align: right;
+}
+
+.messageItem.currentUser .timestamp {
+  color: #f0f0f0; /* Lighter timestamp for current user's dark bubble */
+}
+
+/* Small triangle/tail for bubbles (optional, adds a bit of chat app feel) */
+.bubble::before {
+  content: '';
+  position: absolute;
+  bottom: 0px; /* Adjust to align with the bottom of the bubble */
+  width: 0;
+  height: 0;
+  border-style: solid;
+}
+
+/* Tail for other users (points left) */
+.messageItem:not(.currentUser) .bubble::before {
+  left: -8px; /* Position the tail */
+  border-width: 8px 10px 8px 0; /* Shape of the tail */
+  border-color: transparent #e9e9eb transparent transparent; /* Color of the tail */
+  /* If avatar is on the left, tail should point towards it */
+}
+
+/* Tail for current user (points right) */
+.messageItem.currentUser .bubble::before {
+  right: -8px; /* Position the tail */
+  border-width: 8px 0 8px 10px; /* Shape of the tail */
+  border-color: transparent transparent transparent #007bff; /* Color of the tail */
+   /* If avatar is on the right, tail should point towards it */
+}
+

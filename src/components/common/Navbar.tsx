@@ -412,6 +412,9 @@ const Navbar: React.FC = () => {
                 <NavLink as={Link} to="/search" className={location.pathname === '/search' ? 'active' : ''}>
                   Search
                 </NavLink>
+                <NavLink as={Link} to="/chatrooms" className={location.pathname.startsWith('/chatrooms') ? 'active' : ''}> {/* Chatrooms Link moved here */}
+                  Chat
+                </NavLink>
                 <NavLink as={Link} to="/profile" className={location.pathname === '/profile' ? 'active' : ''}>
                   Profile
                 </NavLink>
@@ -444,40 +447,19 @@ const Navbar: React.FC = () => {
       </NavBar>
 
       <MobileNavLinks $isOpen={isMobileMenuOpen}>
-        {isLoggedIn ? (
+        <Link to="/" onClick={() => setIsMobileMenuOpen(false)}>Home</Link>
+        {isLoggedIn && (
           <>
-            <NavLink as={Link} to="/feed" onClick={closeMobileMenu} className={location.pathname === '/feed' ? 'active' : ''}>
-              Feed
-            </NavLink>
-            <NavLink as={Link} to="/search" onClick={closeMobileMenu} className={location.pathname === '/search' ? 'active' : ''}>
-              Search
-            </NavLink>
-            <NavLink as={Link} to="/profile" onClick={closeMobileMenu} className={location.pathname === '/profile' ? 'active' : ''}>
-              Profile
-            </NavLink>
-            <NavLink as={Link} to="/settings" onClick={closeMobileMenu} className={location.pathname === '/settings' ? 'active' : ''}>
-              Settings
-            </NavLink>
-            <NavLink
-              as="a"
-              href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                handleLogout();
-                closeMobileMenu();
-              }}
-            >
-              Logout
-            </NavLink>
+            <Link to="/chatrooms" onClick={() => setIsMobileMenuOpen(false)}>Chat</Link>
+            <Link to="/profile" onClick={() => setIsMobileMenuOpen(false)}>Profile</Link>
+            <Link to="/settings" onClick={() => setIsMobileMenuOpen(false)}>Settings</Link>
+            <a onClick={() => { handleLogout(); setIsMobileMenuOpen(false); }}>Logout</a>
           </>
-        ) : (
+        )}
+        {!isLoggedIn && (
           <>
-            <NavLink as={Link} to="/login" onClick={closeMobileMenu} className={location.pathname === '/login' ? 'active' : ''}>
-              Sign In
-            </NavLink>
-            <NavLink as={Link} to="/register" onClick={closeMobileMenu} className={location.pathname === '/register' ? 'active' : ''}>
-              Register
-            </NavLink>
+            <Link to="/login" onClick={() => setIsMobileMenuOpen(false)}>Sign In</Link>
+            <Link to="/register" onClick={() => setIsMobileMenuOpen(false)}>Register</Link>
           </>
         )}
       </MobileNavLinks>
@@ -496,6 +478,9 @@ const Navbar: React.FC = () => {
               <DockIcon $active={location.pathname === '/search'} to="/search">
                 🔍
               </DockIcon>
+              <DockIcon $active={location.pathname.startsWith('/chatrooms')} to="/chatrooms"> {/* Chatrooms Icon moved here */}
+                💬
+              </DockIcon>
               <DockIcon $active={location.pathname === '/profile'} to="/profile">
                 👤
               </DockIcon>
@@ -510,4 +495,4 @@ const Navbar: React.FC = () => {
   );
 };
 
-export default Navbar; 
+export default Navbar;

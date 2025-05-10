@@ -9,6 +9,8 @@ import Profile from './components/profile/Profile';
 import Search from './components/profile/Search';
 import Feed from './components/posts/Feed';
 import Settings from './components/settings/Settings';
+import Chatrooms from './components/chat/Chatrooms';
+import Chatroom from './components/chat/Chatroom';
 import { supabase } from './utils/supabaseClient';
 
 // Protected route component
@@ -102,6 +104,22 @@ const App: React.FC = () => {
               <Settings />
             </ProtectedRoute>
           } 
+        />
+        <Route 
+          path="/chatrooms"
+          element={
+            <ProtectedRoute>
+              <Chatrooms />
+            </ProtectedRoute>
+          }
+        />
+        <Route 
+          path="/chatrooms/:id"
+          element={
+            <ProtectedRoute>
+              <Chatroom />
+            </ProtectedRoute>
+          }
         />
         <Route path="/" element={<Navigate to={isLoggedIn ? "/feed" : "/login"} replace />} />
       </Routes>
