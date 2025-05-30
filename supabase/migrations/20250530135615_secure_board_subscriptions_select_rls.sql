@@ -1,6 +1,7 @@
 -- Drop existing select policy if it exists
 DROP POLICY IF EXISTS "Allow public read access to board subscriptions" ON public.board_subscriptions;
 DROP POLICY IF EXISTS "Allow users to manage their own subscriptions" ON public.board_subscriptions; -- In case old one still lingers for ALL
+DROP POLICY IF EXISTS "Allow users to read their own board subscriptions" ON public.board_subscriptions;
 
 -- Allow users to read their own subscriptions
 CREATE POLICY "Allow users to read their own board subscriptions"

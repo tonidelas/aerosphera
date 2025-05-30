@@ -60,6 +60,7 @@ END;
 $$ language 'plpgsql';
 
 -- Trigger to update updated_at on boards table
+DROP TRIGGER IF EXISTS trigger_boards_updated_at ON public.boards;
 CREATE TRIGGER trigger_boards_updated_at
 BEFORE UPDATE ON public.boards
 FOR EACH ROW
@@ -76,18 +77,21 @@ ALTER TABLE public.board_subscriptions ENABLE ROW LEVEL SECURITY;
 
 -- For boards:
 -- Allow public read access to boards
+DROP POLICY IF EXISTS "Allow public read access to boards" ON public.boards;
 CREATE POLICY "Allow public read access to boards"
 ON public.boards
 FOR SELECT
 USING (true);
 
 -- Allow authenticated users to create boards
+DROP POLICY IF EXISTS "Allow authenticated users to create boards" ON public.boards;
 CREATE POLICY "Allow authenticated users to create boards"
 ON public.boards
 FOR INSERT
 WITH CHECK (auth.role() = 'authenticated');
 
 -- Allow board creators to update their own boards
+DROP POLICY IF EXISTS "Allow board creators to update their own boards" ON public.boards;
 CREATE POLICY "Allow board creators to update their own boards"
 ON public.boards
 FOR UPDATE
@@ -95,6 +99,7 @@ USING (auth.uid() = creator_user_id)
 WITH CHECK (auth.uid() = creator_user_id);
 
 -- Allow board creators to delete their own boards (be cautious with delete policies)
+-- DROP POLICY IF EXISTS "Allow board creators to delete their own boards" ON public.boards;
 -- CREATE POLICY "Allow board creators to delete their own boards"
 -- ON public.boards
 -- FOR DELETE
@@ -103,6 +108,7 @@ WITH CHECK (auth.uid() = creator_user_id);
 
 -- For board_subscriptions:
 -- Allow users to manage their own subscriptions
+DROP POLICY IF EXISTS "Allow users to manage their own subscriptions" ON public.board_subscriptions;
 CREATE POLICY "Allow users to manage their own subscriptions"
 ON public.board_subscriptions
 FOR ALL

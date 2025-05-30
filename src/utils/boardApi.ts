@@ -102,10 +102,14 @@ export const deleteBoard = async (boardId: string): Promise<void> => {
 
 // Subscribe to a board
 export const subscribeToBoard = async (boardId: string): Promise<BoardSubscription> => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('User not authenticated');
+
   const { data, error } = await supabase
     .from('board_subscriptions')
     .insert({
       board_id: boardId,
+      user_id: user.id,
     })
     .select()
     .single();
@@ -116,10 +120,14 @@ export const subscribeToBoard = async (boardId: string): Promise<BoardSubscripti
 
 // Unsubscribe from a board
 export const unsubscribeFromBoard = async (boardId: string): Promise<void> => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('User not authenticated');
+
   const { error } = await supabase
     .from('board_subscriptions')
     .delete()
-    .eq('board_id', boardId);
+    .eq('board_id', boardId)
+    .eq('user_id', user.id);
 
   if (error) throw error;
 };
@@ -145,12 +153,9 @@ export const isUserSubscribed = async (boardId: string, userId: string): Promise
     .select('board_id')
     .eq('board_id', boardId)
     .eq('user_id', userId)
-    .single();
+    .maybeSingle();
 
-  if (error) {
-    if (error.code === 'PGRST116') return false; // Not found
-    throw error;
-  }
+  if (error) throw error;
   return !!data;
 };
 
@@ -177,4 +182,15 @@ export const getBoardPosts = async (boardId: string) => {
 
   if (error) throw error;
   return data || [];
+};
+
+// Get board member count
+export const getBoardMemberCount = async (boardId: string): Promise<number> => {
+  const { count, error } = await supabase
+    .from('board_subscriptions')
+    .select('*', { count: 'exact', head: true })
+    .eq('board_id', boardId);
+
+  if (error) throw error;
+  return count || 0;
 }; 

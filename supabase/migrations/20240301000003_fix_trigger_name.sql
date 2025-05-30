@@ -1,5 +1,5 @@
 -- Drop existing trigger and function
-DROP TRIGGER IF EXISTS auth_on_authusercreated ON auth.users;
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 DROP FUNCTION IF EXISTS public.handle_new_user();
 
 -- Create function to handle new user creation

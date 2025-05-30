@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import ReactDOM from 'react-dom'; // Import ReactDOM for createPortal
 import styled, { css, keyframes } from 'styled-components';
 import { ContentBlock } from 'draft-js';
 import { supabase } from '../../utils/supabaseClient';
@@ -1736,7 +1737,7 @@ const Profile: React.FC = () => {
           </TabsHeader>
 
           {/* Song Search Modal for Posts - Moved to top level */}
-          {showSongSearch && (
+          {showSongSearch && ReactDOM.createPortal((
             <SearchModal>
               <SearchContent>
                 <h3>Add a song to your post</h3>
@@ -1755,7 +1756,7 @@ const Profile: React.FC = () => {
                 </div>
               </SearchContent>
             </SearchModal>
-          )}
+          ), document.body)}
 
           <TabContainer>
             {activeTab === 'posts' && (
@@ -1843,7 +1844,7 @@ const Profile: React.FC = () => {
           </TabContainer>
           
           {/* Song Search Modal */}
-          {showSpotifySearch && (
+          {showSpotifySearch && ReactDOM.createPortal((
             <SearchModal>
               <SearchContent>
                 <h3>Add a song to your profile</h3>
@@ -1876,7 +1877,7 @@ const Profile: React.FC = () => {
                 </div>
               </SearchContent>
             </SearchModal>
-          )}
+          ), document.body)}
         </WindowContent>
       </WindowFrame>
     </WindowContainer>

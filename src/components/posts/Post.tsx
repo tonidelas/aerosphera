@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
+import { Link } from 'react-router-dom';
 import { supabase } from '../../utils/supabaseClient';
 import { Heart, HeartFill, ThreeDots } from 'react-bootstrap-icons';
 import { AquaButton } from '../common/StyledComponents';
@@ -7,6 +8,8 @@ import SimpleEditor, { SimpleEditorHandle } from '../common/SimpleEditor';
 import { DeezerTrack, searchDeezerTracks } from '../../utils/deezerClient';
 import { getYoutubeVideoId, extractYoutubeUrl, formatYoutubeLinks } from '../../utils/youtubeUtils';
 import { useSuppressYouTubeErrors } from '../../utils/errorHandling';
+import { isValidImageUrl, handleImageError } from '../../utils/imageUtils';
+import { Board } from '../../types/board';
 
 const PostContainer = styled.div<{ $background?: string }>`
   background: ${ (props: { $background?: string }) => props.$background || 'white'};
@@ -29,6 +32,39 @@ const PostHeader = styled.div`
   display: flex;
   align-items: center;
   margin-bottom: 12px;
+`;
+
+const BoardInfo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 8px 12px;
+  background: rgba(100, 255, 218, 0.1);
+  border: 1px solid rgba(100, 255, 218, 0.3);
+  border-radius: 20px;
+  font-size: 0.85rem;
+  color: #64ffda;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  width: fit-content;
+
+  &:hover {
+    background: rgba(100, 255, 218, 0.2);
+    transform: translateY(-1px);
+  }
+`;
+
+const BoardIcon = styled.img`
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  flex-shrink: 0;
+`;
+
+const BoardName = styled.span`
+  font-weight: 500;
+  white-space: nowrap;
 `;
 
 const Avatar = styled.img`
@@ -279,19 +315,8 @@ interface PostProps {
   music_track_info?: DeezerTrack;
   youtube_video_url?: string | null;
   onProfileClick?: (userId: string) => void;
+  board?: Board | null;
 }
-
-const formatDate = (dateString: string) => {
-  const date = new Date(dateString);
-  return date.toLocaleString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
-  });
-};
 
 const Post: React.FC<PostProps> = ({
   id,
@@ -311,7 +336,8 @@ const Post: React.FC<PostProps> = ({
   music_track_id,
   music_track_info,
   youtube_video_url,
-  onProfileClick
+  onProfileClick,
+  board
 }) => {
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [editing, setEditing] = React.useState(false);
@@ -485,8 +511,30 @@ const Post: React.FC<PostProps> = ({
     }
   };
 
+  const formatDate = (dateString: string): string => {
+    const date = new Date(dateString);
+    return date.toLocaleString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+  };
+
   return (
     <PostContainer $background={background}>
+      {board && (
+        <BoardInfo as={Link} to={`/b/${board.slug}`}>
+          {board.icon_image_url ? (
+            <BoardIcon src={board.icon_image_url} alt={board.name} />
+          ) : (
+            <BoardIcon src="/default-board-icon.png" alt={board.name} />
+          )}
+          <BoardName>/b/{board.slug}</BoardName>
+        </BoardInfo>
+      )}
       {showDeleteConfirm && (
         <div style={{
           position: 'fixed',
@@ -552,18 +600,11 @@ const Post: React.FC<PostProps> = ({
       
       <PostContent dangerouslySetInnerHTML={{ __html: formattedContent }} />
       
-      {image_url && 
-        image_url !== "[Post image]" && 
-        !image_url.includes("[Post image]") && 
-        !videoId && (
+      {isValidImageUrl(image_url) && !videoId && (
         <PostImage 
-          src={image_url} 
+          src={image_url!} 
           alt="Post content" 
-          onError={(e) => {
-            // Handle image load errors by hiding the broken image
-            console.error("Failed to load image:", image_url);
-            e.currentTarget.style.display = 'none';
-          }} 
+          onError={(e) => handleImageError(e.currentTarget)} 
         />
       )}
       

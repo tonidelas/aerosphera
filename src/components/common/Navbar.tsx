@@ -413,7 +413,7 @@ const Navbar: React.FC = () => {
                   Search
                 </NavLink>
                 <NavLink as={Link} to="/boards" className={location.pathname.startsWith('/boards') || location.pathname.startsWith('/b/') ? 'active' : ''}>
-                  Boards
+                  Spheras
                 </NavLink>
                 <NavLink as={Link} to="/chatrooms" className={location.pathname.startsWith('/chatrooms') ? 'active' : ''}>
                   Chat
@@ -453,7 +453,7 @@ const Navbar: React.FC = () => {
         <Link to="/" onClick={() => setIsMobileMenuOpen(false)}>Home</Link>
         {isLoggedIn && (
           <>
-            <Link to="/boards" onClick={() => setIsMobileMenuOpen(false)}>Boards</Link>
+            <Link to="/boards" onClick={() => setIsMobileMenuOpen(false)}>Spheras</Link>
             <Link to="/chatrooms" onClick={() => setIsMobileMenuOpen(false)}>Chat</Link>
             <Link to="/profile" onClick={() => setIsMobileMenuOpen(false)}>Profile</Link>
             <Link to="/settings" onClick={() => setIsMobileMenuOpen(false)}>Settings</Link>

@@ -1,5 +1,5 @@
 -- Create chatrooms table
-CREATE TABLE public.chatrooms (
+CREATE TABLE IF NOT EXISTS public.chatrooms (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
@@ -7,7 +7,7 @@ CREATE TABLE public.chatrooms (
 );
 
 -- Create messages table
-CREATE TABLE public.messages (
+CREATE TABLE IF NOT EXISTS public.messages (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   chatroom_id UUID REFERENCES public.chatrooms(id) ON DELETE CASCADE NOT NULL,
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL, -- Sender of the message
@@ -20,6 +20,7 @@ ALTER TABLE public.chatrooms ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
 
 -- Policies for chatrooms
+DROP POLICY IF EXISTS "Allow authenticated users to read chatrooms" ON public.chatrooms;
 -- Allow authenticated users to read all chatrooms
 CREATE POLICY "Allow authenticated users to read chatrooms"
 ON public.chatrooms
@@ -27,6 +28,7 @@ FOR SELECT
 TO authenticated
 USING (true);
 
+DROP POLICY IF EXISTS "Allow authenticated users to create chatrooms" ON public.chatrooms;
 -- Allow authenticated users to create chatrooms
 CREATE POLICY "Allow authenticated users to create chatrooms"
 ON public.chatrooms
@@ -34,6 +36,7 @@ FOR INSERT
 TO authenticated
 WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Allow creator to update their chatroom" ON public.chatrooms;
 -- Allow creator to update their chatroom (e.g., name)
 CREATE POLICY "Allow creator to update their chatroom"
 ON public.chatrooms
@@ -42,6 +45,7 @@ TO authenticated
 USING (auth.uid() = user_id)
 WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Allow creator to delete their chatroom" ON public.chatrooms;
 -- Allow creator to delete their chatroom
 CREATE POLICY "Allow creator to delete their chatroom"
 ON public.chatrooms
@@ -51,6 +55,7 @@ USING (auth.uid() = user_id);
 
 
 -- Policies for messages
+DROP POLICY IF EXISTS "Allow authenticated users to read messages" ON public.messages;
 -- Allow authenticated users to read messages in chatrooms they are part of (implicitly, all messages for now)
 CREATE POLICY "Allow authenticated users to read messages"
 ON public.messages
@@ -58,6 +63,7 @@ FOR SELECT
 TO authenticated
 USING (true); -- For simplicity, anyone can read. Could be restricted further.
 
+DROP POLICY IF EXISTS "Allow authenticated users to send messages" ON public.messages;
 -- Allow authenticated users to send messages
 CREATE POLICY "Allow authenticated users to send messages"
 ON public.messages
@@ -65,6 +71,7 @@ FOR INSERT
 TO authenticated
 WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Allow sender to update their own messages" ON public.messages;
 -- Allow sender to update their own messages (e.g., edit typo) - within a time limit could be added
 CREATE POLICY "Allow sender to update their own messages"
 ON public.messages
@@ -73,6 +80,7 @@ TO authenticated
 USING (auth.uid() = user_id)
 WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Allow sender to delete their own messages" ON public.messages;
 -- Allow sender to delete their own messages
 CREATE POLICY "Allow sender to delete their own messages"
 ON public.messages

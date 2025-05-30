@@ -50,20 +50,32 @@ const EmptyFeed = styled.div`
 interface PostData {
   id: string;
   content: string;
-  image_url: string | null;
+  image_url?: string | null;
   user_id: string;
   created_at: string;
+  updated_at?: string;
   background?: string;
   music_track_id?: string;
-  music_track_info?: DeezerTrack;
+  music_track_info?: any;
+  board_id?: string | null;
   profiles: {
     username: string;
     avatar_url: string | null;
   };
   likes_count: number;
   is_liked: boolean;
-  updated_at?: string;
   youtube_video_url?: string | null;
+  boards: {
+    id: string;
+    name: string;
+    slug: string;
+    icon_image_url: string | null;
+    description: string | null;
+    creator_user_id: string | null;
+    created_at: string;
+    updated_at: string;
+    banner_image_url: string | null;
+  } | null;
 }
 
 const Feed: React.FC = () => {
@@ -151,10 +163,18 @@ const Feed: React.FC = () => {
 
       console.log('Fetching posts...');
       
-      // First, simply get all posts
+      // Get all posts with board information
       const { data: postsData, error: postsError } = await supabase
         .from('posts')
-        .select('*')
+        .select(`
+          *,
+          boards (
+            id,
+            name,
+            slug,
+            icon_image_url
+          )
+        `)
         .order('created_at', { ascending: false });
 
       if (postsError) {
@@ -262,7 +282,8 @@ const Feed: React.FC = () => {
           music_track_info: typeof post.music_track_info === 'string'
             ? JSON.parse(post.music_track_info)
             : post.music_track_info,
-          youtube_video_url: post.youtube_video_url
+          youtube_video_url: post.youtube_video_url,
+          boards: post.boards
         };
       });
       
@@ -379,10 +400,10 @@ const Feed: React.FC = () => {
               key={post.id}
               id={post.id}
               content={post.content}
-              image_url={post.image_url}
+              image_url={post.image_url || null}
               user_id={post.user_id}
               username={post.profiles.username}
-              avatar_url={post.profiles.avatar_url}
+              avatar_url={post.profiles.avatar_url || null}
               likes_count={post.likes_count}
               is_liked={post.is_liked}
               onLike={handleLike}
@@ -395,6 +416,7 @@ const Feed: React.FC = () => {
               music_track_info={post.music_track_info}
               youtube_video_url={post.youtube_video_url}
               onProfileClick={handleProfileClick}
+              board={post.boards}
             />
           ))
         ) : (

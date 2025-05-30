@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
+import ReactDOM from 'react-dom'; // Import ReactDOM for createPortal
 import styled from 'styled-components';
 import { supabase } from '../../utils/supabaseClient';
 import { uploadImage } from '../../utils/cloudinaryUtils';
@@ -28,6 +29,14 @@ const SearchModal = styled.div`
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  padding: 20px;
+  box-sizing: border-box;
+  
+  @media (max-width: 480px) {
+    padding: 10px;
+    align-items: flex-start;
+    padding-top: 20px;
+  }
 `;
 
 const SearchContent = styled.div`
@@ -35,48 +44,128 @@ const SearchContent = styled.div`
   border-radius: 12px;
   width: 90%;
   max-width: 500px;
-  max-height: 90vh;
-  overflow-y: auto;
+  max-height: 85vh;
+  overflow: hidden;
   padding: 24px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  
+  @media (max-width: 768px) {
+    width: 95%;
+    padding: 20px;
+    max-height: 80vh;
+    border-radius: 10px;
+  }
   
   @media (max-width: 480px) {
-    width: 95%;
+    width: 100%;
     padding: 16px;
-    max-height: 80vh;
+    max-height: 90vh;
+    border-radius: 8px;
+    margin: 0;
+    min-height: auto;
   }
 `;
 
-const SearchInput = styled(GlassInput)`
+const SearchContainer = styled.div`
+  position: relative;
   width: 100%;
   margin-bottom: 20px;
+  
+  @media (max-width: 480px) {
+    margin-bottom: 15px;
+  }
+`;
+
+const SearchInput = styled.input`
+  width: 100%;
+  padding: 15px 20px;
+  border-radius: 30px;
+  border: 2px solid #52A5D8;
+  font-size: 1.1rem;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 4px 15px rgba(52, 165, 216, 0.2);
+  transition: all 0.3s ease;
+  
+  &:focus {
+    outline: none;
+    border-color: #1D6BA7;
+    box-shadow: 0 4px 20px rgba(29, 107, 167, 0.3);
+  }
+  
+  @media (max-width: 768px) {
+    padding: 12px 18px;
+    font-size: 1rem;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 10px 16px;
+    font-size: 0.95rem;
+    border-radius: 25px;
+  }
 `;
 
 const SearchResults = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  max-height: 60vh;
+  position: relative;
+  width: 100%;
+  max-height: 300px;
   overflow-y: auto;
-  padding-right: 5px;
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+  margin-top: 10px;
   
-  &::-webkit-scrollbar {
-    width: 6px;
+  @media (max-width: 480px) {
+    max-height: 250px;
+    border-radius: 12px;
   }
+`;
+
+const ResultItem = styled.div`
+  padding: 15px;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: background-color 0.2s;
   
-  &::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 10px;
-  }
-  
-  &::-webkit-scrollbar-thumb {
-    background: #888;
-    border-radius: 10px;
+  &:hover {
+    background-color: #f5f5f7;
   }
   
   @media (max-width: 480px) {
-    max-height: 50vh;
-    gap: 8px;
+    padding: 12px 15px;
+  }
+`;
+
+const TrackInfo = styled.div`
+  margin-left: 15px;
+  
+  @media (max-width: 480px) {
+    margin-left: 12px;
+  }
+`;
+
+const TrackName = styled.div`
+  font-weight: 600;
+  font-size: 1.1rem;
+  
+  @media (max-width: 480px) {
+    font-size: 1rem;
+  }
+`;
+
+const ArtistName = styled.div`
+  color: #666;
+  font-size: 0.95rem;
+  margin-top: 3px;
+  
+  @media (max-width: 480px) {
+    font-size: 0.9rem;
   }
 `;
 
@@ -93,9 +182,15 @@ const SongResult = styled.div`
     background: rgba(0, 0, 0, 0.05);
   }
   
-  @media (max-width: 480px) {
+  @media (max-width: 768px) {
     padding: 8px;
+    gap: 10px;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 8px 6px;
     gap: 8px;
+    border-radius: 6px;
   }
 `;
 
@@ -104,11 +199,22 @@ const AlbumCover = styled.img`
   height: 50px;
   border-radius: 5px;
   object-fit: cover;
+  flex-shrink: 0;
+  
+  @media (max-width: 480px) {
+    width: 40px;
+    height: 40px;
+    border-radius: 4px;
+  }
 `;
 
 const SongInfo = styled.div`
   flex: 1;
   min-width: 0; /* Prevent flex item from overflowing */
+  
+  @media (max-width: 480px) {
+    min-width: 0;
+  }
 `;
 
 const SongTitle = styled.h4`
@@ -119,15 +225,11 @@ const SongTitle = styled.h4`
   overflow: hidden;
   text-overflow: ellipsis;
   font-size: 0.95em;
-`;
-
-const ArtistName = styled.p`
-  margin: 0;
-  font-size: 0.85em;
-  color: #666;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  
+  @media (max-width: 480px) {
+    font-size: 0.9em;
+    margin-bottom: 2px;
+  }
 `;
 
 // Component for displaying selected track preview
@@ -135,10 +237,24 @@ const SelectedTrackPreview = styled.div`
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px;
-  background: rgba(0, 0, 0, 0.05);
-  border-radius: 6px;
-  margin-top: 10px;
+  padding: 12px;
+  background: rgba(52, 165, 216, 0.1);
+  border: 1px solid rgba(52, 165, 216, 0.3);
+  border-radius: 8px;
+  margin: 12px 0;
+  
+  @media (max-width: 768px) {
+    padding: 10px;
+    gap: 8px;
+    margin: 10px 0;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 8px;
+    gap: 8px;
+    margin: 8px 0;
+    border-radius: 6px;
+  }
 `;
 
 const RemoveTrackButton = styled.button`
@@ -148,6 +264,18 @@ const RemoveTrackButton = styled.button`
   cursor: pointer;
   font-size: 1.2em;
   padding: 5px;
+  border-radius: 50%;
+  transition: background 0.2s ease;
+  flex-shrink: 0;
+  
+  &:hover {
+    background: rgba(255, 71, 87, 0.1);
+  }
+  
+  @media (max-width: 480px) {
+    font-size: 1.1em;
+    padding: 4px;
+  }
 `;
 
 const BoardSelectContainer = styled.div`
@@ -248,6 +376,11 @@ const BackgroundOptions = styled.div`
   display: flex;
   gap: 8px;
   margin-bottom: 10px;
+  
+  @media (max-width: 480px) {
+    gap: 6px;
+    flex-wrap: wrap;
+  }
 `;
 
 const BackgroundOption = styled.div<{ $bg: string; $selected: boolean }>`
@@ -259,9 +392,16 @@ const BackgroundOption = styled.div<{ $bg: string; $selected: boolean }>`
   border: ${props => props.$selected ? '2px solid #007bff' : '1px solid #ddd'};
   box-shadow: ${props => props.$selected ? '0 0 5px #007bff' : 'none'};
   transition: transform 0.2s ease;
+  flex-shrink: 0;
   
   &:hover {
     transform: scale(1.1);
+  }
+  
+  @media (max-width: 480px) {
+    width: 25px;
+    height: 25px;
+    border-radius: 4px;
   }
 `;
 
@@ -289,11 +429,111 @@ const ProgressFill = styled.div<{ $progress: number }>`
   transition: width 0.3s ease;
 `;
 
+const ControlsContainer = styled.div`
+  margin-top: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  
+  @media (max-width: 480px) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+`;
+
+const BackgroundSelector = styled.div`
+  flex: 1;
+  min-width: 200px;
+  
+  @media (max-width: 480px) {
+    min-width: auto;
+    width: 100%;
+  }
+`;
+
+const BackgroundLabel = styled.small`
+  color: #666;
+  display: block;
+  margin-bottom: 5px;
+  font-size: 0.9rem;
+  
+  @media (max-width: 480px) {
+    font-size: 0.85rem;
+  }
+`;
+
+const AddSongButton = styled(AquaButton)`
+  padding: 6px 12px;
+  font-size: 0.9em;
+  height: auto;
+  margin-top: 10px;
+  white-space: nowrap;
+  
+  @media (max-width: 480px) {
+    width: 100%;
+    margin-top: 0;
+    padding: 10px 16px;
+    font-size: 0.9rem;
+  }
+`;
+
+const SearchModalHeader = styled.h3`
+  margin: 0 0 16px 0;
+  font-size: 1.2rem;
+  color: #333;
+  flex-shrink: 0;
+  
+  @media (max-width: 480px) {
+    font-size: 1.1rem;
+    margin-bottom: 12px;
+    text-align: center;
+  }
+`;
+
+const SearchButton = styled(AquaButton)`
+  min-width: 80px;
+  flex-shrink: 0;
+  
+  @media (max-width: 480px) {
+    width: 100%;
+    min-width: auto;
+  }
+`;
+
+const SearchModalFooter = styled.div`
+  text-align: right;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #eee;
+  flex-shrink: 0;
+  
+  @media (max-width: 480px) {
+    text-align: center;
+    margin-top: 12px;
+    padding-top: 12px;
+  }
+`;
+
+const CancelButton = styled(AquaButton)`
+  background: #eee;
+  color: #333;
+  padding: 8px 16px;
+  
+  @media (max-width: 480px) {
+    width: 100%;
+    padding: 10px 16px;
+  }
+`;
+
 interface CreatePostProps {
   onPostCreated: () => void;
+  defaultBoardId?: string;
 }
 
-const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
+const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, defaultBoardId }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedBackground, setSelectedBackground] = useState(CARD_BACKGROUNDS[0]);
   const [statusMessage, setStatusMessage] = useState<{ message: string; isError: boolean } | null>(null);
@@ -315,12 +555,17 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
         const boardsData = await getBoards();
         setBoards(boardsData);
         
-        // Check if there's a board parameter in the URL
-        const boardSlug = searchParams.get('board');
-        if (boardSlug) {
-          const board = boardsData.find(b => b.slug === boardSlug);
-          if (board) {
-            setSelectedBoardId(board.id);
+        // Check if there's a defaultBoardId prop
+        if (defaultBoardId) {
+          setSelectedBoardId(defaultBoardId);
+        } else {
+          // Check if there's a board parameter in the URL
+          const boardSlug = searchParams.get('board');
+          if (boardSlug) {
+            const board = boardsData.find(b => b.slug === boardSlug);
+            if (board) {
+              setSelectedBoardId(board.id);
+            }
           }
         }
       } catch (error) {
@@ -329,7 +574,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
     };
 
     fetchBoards();
-  }, [searchParams]);
+  }, [searchParams, defaultBoardId]);
 
   const searchMusic = async (query: string) => {
     if (!query.trim()) return;
@@ -513,7 +758,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
         {/* Board Selection */}
         <BoardSelectContainer>
           <BoardSelectLabel htmlFor="board-select">
-            Post to Board (Optional)
+            Post to Sphera (Optional)
           </BoardSelectLabel>
           <BoardSelect
             id="board-select"
@@ -529,9 +774,9 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
           </BoardSelect>
         </BoardSelectContainer>
 
-        <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
-          <div>
-            <small style={{ color: '#666', display: 'block', marginBottom: '5px' }}>Choose background:</small>
+        <ControlsContainer>
+          <BackgroundSelector>
+            <BackgroundLabel>Choose background:</BackgroundLabel>
             <BackgroundOptions>
               {CARD_BACKGROUNDS.map((bg, index) => (
                 <BackgroundOption
@@ -542,17 +787,16 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
                 />
               ))}
             </BackgroundOptions>
-          </div>
+          </BackgroundSelector>
           {/* Button to add song */}
-          <AquaButton
+          <AddSongButton
             type="button" // Important: Prevent form submission
             onClick={() => setShowSongSearch(true)}
             disabled={isSubmitting || !!selectedTrack} // Disable if already selected
-            style={{ padding: '6px 12px', fontSize: '0.9em', height: 'auto', marginTop: '10px' }}
           >
              {selectedTrack ? 'Song Added' : 'Add Song Snippet'}
-          </AquaButton>
-        </div>
+          </AddSongButton>
+        </ControlsContainer>
 
         {uploadProgress !== null && (
           <ProgressBar>
@@ -577,11 +821,11 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
       </form>
 
       {/* Song Search Modal */}
-      {showSongSearch && (
+      {showSongSearch && ReactDOM.createPortal((
         <SearchModal>
           <SearchContent>
-            <h3>Add a song to your post</h3>
-            <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+            <SearchModalHeader>Add a song to your post</SearchModalHeader>
+            <SearchContainer>
               <SearchInput
                 type="text"
                 placeholder="Search Deezer (artist or title)..."
@@ -589,28 +833,26 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && searchMusic(searchQuery)}
               />
-              <AquaButton
+              <SearchButton
                 onClick={() => searchMusic(searchQuery)}
                 disabled={isSearching}
-                style={{ minWidth: '80px' }}
               >
                 {isSearching ? '...' : 'Search'}
-              </AquaButton>
-            </div>
+              </SearchButton>
+            </SearchContainer>
             <SearchResults>
               {renderSearchResults()}
             </SearchResults>
-            <div style={{ textAlign: 'right', marginTop: '20px' }}>
-              <AquaButton
+            <SearchModalFooter>
+              <CancelButton
                 onClick={() => { setShowSongSearch(false); setSearchQuery(''); setSearchResults([]); }}
-                style={{ background: '#eee', color: '#333' }}
               >
                 Cancel
-              </AquaButton>
-            </div>
+              </CancelButton>
+            </SearchModalFooter>
           </SearchContent>
         </SearchModal>
-      )}
+      ), document.body)}
     </CreatePostContainer>
   );
 };
