@@ -12,9 +12,9 @@ import {
   GlassInput,
 } from '../common/StyledComponents';
 import { extractYoutubeUrl, formatYoutubeLinks } from '../../utils/youtubeUtils';
-import { getBoards } from '../../utils/boardApi';
+import { getBoards, getUserSubscriptions } from '../../utils/boardApi';
 import { Board } from '../../types/board';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 
 // Reuse or adapt styled components from Profile.tsx or create new ones
 // Define Modal and Search components locally
@@ -528,6 +528,162 @@ const CancelButton = styled(AquaButton)`
   }
 `;
 
+const BoardSelectorContainer = styled.div`
+  margin: 20px 0;
+  padding: 18px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 12px;
+  border: 1px solid rgba(52, 165, 216, 0.3);
+  box-shadow: 0 4px 15px rgba(52, 165, 216, 0.1);
+`;
+
+const BoardSelectorLabel = styled.label`
+  display: block;
+  font-size: 1rem;
+  color: #1D6BA7;
+  margin-bottom: 12px;
+  font-weight: 600;
+`;
+
+const BoardSearchInput = styled(GlassInput)`
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 12px 18px;
+  font-size: 1rem;
+`;
+
+const BoardSelectStyled = styled.select`
+  width: 100%;
+  padding: 12px 18px;
+  border-radius: 8px;
+  border: 2px solid #52A5D8;
+  font-size: 1rem;
+  background: white;
+  color: #333;
+  cursor: pointer;
+  transition: border-color 0.3s ease;
+
+  &:focus {
+    outline: none;
+    border-color: #1D6BA7;
+  }
+  
+  option {
+    padding: 8px;
+  }
+`;
+
+const NoResultsText = styled.p`
+  color: #666;
+  text-align: center;
+  font-style: italic;
+  padding: 10px 0;
+`;
+
+const NoBoardsMessage = styled.p`
+  color: #444;
+  text-align: center;
+  padding: 15px;
+  background: rgba(52, 165, 216, 0.05);
+  border-radius: 8px;
+  border: 1px dashed rgba(52, 165, 216, 0.4);
+
+  a {
+    color: #1D6BA7;
+    font-weight: 600;
+    text-decoration: none;
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+`;
+
+// New styled components for membership error notification
+const MembershipErrorModal = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+  box-sizing: border-box;
+`;
+
+const MembershipErrorContent = styled.div`
+  background: white;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 400px;
+  padding: 32px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  text-align: center;
+  position: relative;
+  box-sizing: border-box;
+  
+  @media (max-width: 480px) {
+    padding: 24px;
+    border-radius: 12px;
+  }
+`;
+
+const ErrorIcon = styled.div`
+  font-size: 3rem;
+  margin-bottom: 16px;
+  color: #dc004e;
+`;
+
+const ErrorTitle = styled.h3`
+  color: #dc004e;
+  margin: 0 0 12px 0;
+  font-size: 1.4rem;
+  font-weight: 600;
+`;
+
+const ErrorMessage = styled.p`
+  color: #666;
+  margin: 0 0 24px 0;
+  font-size: 1rem;
+  line-height: 1.5;
+`;
+
+const ErrorActions = styled.div`
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+`;
+
+const ErrorButton = styled.button<{ variant?: 'primary' | 'secondary' }>`
+  padding: 12px 24px;
+  border-radius: 8px;
+  border: none;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 100px;
+  
+  ${props => props.variant === 'primary' ? `
+    background: #52A5D8;
+    color: white;
+    &:hover {
+      background: #1D6BA7;
+      transform: translateY(-2px);
+    }
+  ` : `
+    background: #f5f5f5;
+    color: #666;
+    &:hover {
+      background: #e0e0e0;
+    }
+  `}
+`;
+
 interface CreatePostProps {
   onPostCreated: () => void;
   defaultBoardId?: string;
@@ -546,45 +702,78 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, defaultBoardId }
   const [isSearching, setIsSearching] = useState(false);
   const [boards, setBoards] = useState<Board[]>([]);
   const [selectedBoardId, setSelectedBoardId] = useState<string>('');
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
-  // Fetch boards on component mount
+  // Deezer search state
+  const [showMusicSearch, setShowMusicSearch] = useState(false);
+  const [musicSearchTerm, setMusicSearchTerm] = useState('');
+  const [musicSearchResults, setMusicSearchResults] = useState<DeezerTrack[]>([]);
+
+  // Board selection state
+  const [userBoards, setUserBoards] = useState<Board[]>([]);
+  const [selectedBoard, setSelectedBoard] = useState<string | undefined>(defaultBoardId);
+  const [boardSearchTerm, setBoardSearchTerm] = useState(''); // New state for board search
+  const [showMembershipError, setShowMembershipError] = useState(false); // New state for membership error modal
+
   useEffect(() => {
-    const fetchBoards = async () => {
-      try {
-        const boardsData = await getBoards();
-        setBoards(boardsData);
-        
-        // Check if there's a defaultBoardId prop
-        if (defaultBoardId) {
-          setSelectedBoardId(defaultBoardId);
-        } else {
-          // Check if there's a board parameter in the URL
-          const boardSlug = searchParams.get('board');
-          if (boardSlug) {
-            const board = boardsData.find(b => b.slug === boardSlug);
-            if (board) {
-              setSelectedBoardId(board.id);
-            }
+    const fetchUserAndBoards = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id || null;
+      setCurrentUserId(userId);
+
+      if (userId) {
+        try {
+          const boards = await getUserSubscriptions(userId);
+          setUserBoards(boards);
+          if (defaultBoardId && boards.some(b => b.id === defaultBoardId)) {
+            setSelectedBoard(defaultBoardId);
+          } else if (searchParams.get('boardSlug')) {
+            // Handling boardSlug from params is done in another useEffect
+          } else if (boards.length > 0 && !defaultBoardId) {
+            // Optionally pre-select the first board if no default is set and not from specific board page
+            // setSelectedBoard(boards[0].id);
           }
+        } catch (err) {
+          console.error("Error fetching user's boards:", err);
+          setStatusMessage({ message: "Could not load your Spheras for posting.", isError: true });
         }
-      } catch (error) {
-        console.error('Error fetching boards:', error);
       }
     };
+    fetchUserAndBoards();
+  }, [defaultBoardId, searchParams]); // Added searchParams dependency
 
-    fetchBoards();
-  }, [searchParams, defaultBoardId]);
+  useEffect(() => {
+    // Set content from URL param
+    const initialContent = searchParams.get('content');
+    if (initialContent) {
+      // Note: SimpleEditor doesn't have a setContent method, so we'll handle this differently
+      // The initial content would need to be passed as a prop to SimpleEditor or handled in its implementation
+    }
+
+    // Set board from URL param if boards are loaded
+    const boardSlugParam = searchParams.get('boardSlug');
+    if (boardSlugParam && userBoards.length > 0) {
+      const boardFromSlug = userBoards.find(b => b.slug === boardSlugParam);
+      if (boardFromSlug) {
+        setSelectedBoard(boardFromSlug.id);
+      }
+    }
+  }, [searchParams, userBoards]); // Runs when searchParams or userBoards change
 
   const searchMusic = async (query: string) => {
-    if (!query.trim()) return;
+    if (!query.trim()) {
+      setSearchResults([]);
+      return;
+    }
     setIsSearching(true);
     try {
       const results = await searchDeezerTracks(query);
-      setSearchResults(results);
+      setMusicSearchResults(results);
     } catch (error) {
       console.error('Error searching Deezer:', error);
-      setSearchResults([]);
+      setMusicSearchResults([]);
+      setStatusMessage({ message: 'Failed to search music.', isError: true });
     } finally {
       setIsSearching(false);
     }
@@ -601,10 +790,10 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, defaultBoardId }
     if (isSearching) {
       return <p style={{ textAlign: 'center', color: '#666' }}>Searching...</p>;
     }
-    if (searchResults.length === 0 && searchQuery && !isSearching) {
+    if (musicSearchResults.length === 0 && musicSearchTerm && !isSearching) {
       return <p style={{ textAlign: 'center', color: '#666' }}>No tracks found.</p>;
     }
-    return searchResults.map(track => (
+    return musicSearchResults.map(track => (
       <SongResult
         key={track.id}
         onClick={() => handleSelectTrack(track)}
@@ -623,30 +812,41 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, defaultBoardId }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editorRef.current) return;
+    if (!currentUserId) {
+      setStatusMessage({ message: 'You must be logged in to post.', isError: true });
+      return;
+    }
 
-    const { html, raw } = editorRef.current.getContent();
-    const imageUrl = editorRef.current.getImage();
-    
-    // Format YouTube links in post content
-    const formattedHtml = formatYoutubeLinks(html);
-    
-    // Detect if content contains a YouTube URL
-    const detectedYoutubeUrl = extractYoutubeUrl(formattedHtml);
-    
-    console.log('Post content debug:', { 
-      originalHtml: html,
-      formattedHtml, 
-      rawBlocks: raw?.blocks, 
-      imageUrl, 
-      hasTrack: !!selectedTrack,
-      youtubeUrl: detectedYoutubeUrl 
-    });
+    // Check if posting to a board that requires membership
+    if (selectedBoard) {
+        const isMember = userBoards.some(board => board.id === selectedBoard);
+        
+        // If user is not a member of the selected board
+        if (!isMember) {
+            // Special case: if this is the default board (posting from board page), 
+            // we need to check if user is actually subscribed to this specific board
+            if (defaultBoardId && defaultBoardId === selectedBoard) {
+                // This means user is on a board page but not subscribed - show error
+                setShowMembershipError(true);
+                return;
+            } else {
+                // User selected a board from dropdown that they're not subscribed to
+                // This shouldn't happen with our current UI, but handle it as safety
+                setShowMembershipError(true);
+                return;
+            }
+        }
+    }
+
+    const finalContent = editorRef.current ? editorRef.current.getContent() : '';
+    const contentString = typeof finalContent === 'string' ? finalContent : finalContent?.html || '';
+    const processedContent = formatYoutubeLinks(contentString); // Process for YouTube links
+    const extractedYoutubeUrl = extractYoutubeUrl(processedContent);
 
     // Improved check for empty post content
     // Check for text content in html or raw blocks
-    const hasText = formattedHtml && formattedHtml.trim() !== '' && formattedHtml !== '<p></p>' && formattedHtml !== '<p><br></p>';
-    const hasImage = !!imageUrl;
+    const hasText = processedContent && processedContent.trim() !== '' && processedContent !== '<p></p>' && processedContent !== '<p><br></p>';
+    const hasImage = !!editorRef.current?.getImage();
     const hasTrack = !!selectedTrack;
     
     console.log('Content validation:', { hasText, hasImage, hasTrack });
@@ -666,21 +866,22 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, defaultBoardId }
       const userId = userResult.data.user.id;
 
       let imageUrlResult = null;
-      if (imageUrl) {
+      const imageFile = editorRef.current?.getImage();
+      if (imageFile) {
         try {
           // Handle File objects (which is what SimpleEditor.getImage() returns)
-          if (imageUrl instanceof File) {
+          if (imageFile instanceof File) {
             setStatusMessage({ message: 'Uploading image...', isError: false });
             // Use the progress callback
             imageUrlResult = await uploadImage(
-              imageUrl, 
+              imageFile, 
               (progress) => {
                 setUploadProgress(progress);
               }
             );
             setUploadProgress(100); // Ensure we show 100% when done
           } else {
-            console.error('Invalid image format:', typeof imageUrl);
+            console.error('Invalid image format:', typeof imageFile);
             setStatusMessage({ 
               message: 'Invalid image format. Your post will be created without the image.', 
               isError: true 
@@ -705,23 +906,23 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, defaultBoardId }
         .from('posts')
         .insert([
           {
-            content: formattedHtml, // Use the formatted HTML with highlighted YouTube links
+            content: processedContent, // Use the formatted HTML with highlighted YouTube links
             image_url: imageUrlResult,
             background: selectedBackground,
             user_id: userId,
-            board_id: selectedBoardId || null,
+            board_id: selectedBoard || null, // Use selectedBoard instead of selectedBoardId
             music_track_id: selectedTrack ? selectedTrack.id : null,
             music_track_info: selectedTrack ? selectedTrack : null,
-            youtube_video_url: detectedYoutubeUrl
+            youtube_video_url: extractedYoutubeUrl
           }
         ]);
 
       if (error) throw error;
 
-      editorRef.current.reset();
+      editorRef.current?.reset(); // Add null check
       setSelectedTrack(null);
       setSelectedBackground(CARD_BACKGROUNDS[0]);
-      setSelectedBoardId('');
+      setSelectedBoard(undefined); // Reset selectedBoard instead of selectedBoardId
       
       setStatusMessage({ message: 'Post created successfully!', isError: false });
       setTimeout(() => setStatusMessage(null), 3000);
@@ -734,6 +935,42 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, defaultBoardId }
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const filteredBoards = userBoards.filter(board => 
+    board.name.toLowerCase().includes(boardSearchTerm.toLowerCase())
+  );
+
+  const renderBoardSelection = () => {
+    if (!currentUserId) return null; // Don't show if not logged in
+
+    return (
+      <BoardSelectorContainer>
+        <BoardSelectorLabel htmlFor="boardSelect">Post to Sphera (Optional):</BoardSelectorLabel>
+        <BoardSearchInput
+          type="text"
+          placeholder="Search your Spheras..."
+          value={boardSearchTerm}
+          onChange={(e) => setBoardSearchTerm(e.target.value)}
+        />
+        {filteredBoards.length > 0 ? (
+          <BoardSelectStyled id="boardSelect" value={selectedBoard || ''} onChange={(e) => setSelectedBoard(e.target.value || undefined)}>
+            <option value="">Select a Sphera (Optional)</option>
+            {filteredBoards.map(board => (
+              <option key={board.id} value={board.id}>
+                {board.name}
+              </option>
+            ))}
+          </BoardSelectStyled>
+        ) : boardSearchTerm && userBoards.length > 0 ? (
+          <NoResultsText>No Spheras found matching "{boardSearchTerm}".</NoResultsText>
+        ) : userBoards.length === 0 && !defaultBoardId ? (
+          <NoBoardsMessage>
+            You are not a member of any Spheras yet. <Link to="/boards">Explore Spheras</Link> or <Link to="/boards/create">create your own</Link> to post.
+          </NoBoardsMessage>
+        ) : null}
+      </BoardSelectorContainer>
+    );
   };
 
   return (
@@ -755,24 +992,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, defaultBoardId }
           </SelectedTrackPreview>
         )}
 
-        {/* Board Selection */}
-        <BoardSelectContainer>
-          <BoardSelectLabel htmlFor="board-select">
-            Post to Sphera (Optional)
-          </BoardSelectLabel>
-          <BoardSelect
-            id="board-select"
-            value={selectedBoardId}
-            onChange={(e) => setSelectedBoardId(e.target.value)}
-          >
-            <option value="">General Feed</option>
-            {boards.map(board => (
-              <option key={board.id} value={board.id}>
-                {board.name}
-              </option>
-            ))}
-          </BoardSelect>
-        </BoardSelectContainer>
+        {renderBoardSelection()}
 
         <ControlsContainer>
           <BackgroundSelector>
@@ -791,7 +1011,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, defaultBoardId }
           {/* Button to add song */}
           <AddSongButton
             type="button" // Important: Prevent form submission
-            onClick={() => setShowSongSearch(true)}
+            onClick={() => setShowMusicSearch(true)}
             disabled={isSubmitting || !!selectedTrack} // Disable if already selected
           >
              {selectedTrack ? 'Song Added' : 'Add Song Snippet'}
@@ -821,7 +1041,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, defaultBoardId }
       </form>
 
       {/* Song Search Modal */}
-      {showSongSearch && ReactDOM.createPortal((
+      {showMusicSearch && ReactDOM.createPortal((
         <SearchModal>
           <SearchContent>
             <SearchModalHeader>Add a song to your post</SearchModalHeader>
@@ -829,12 +1049,12 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, defaultBoardId }
               <SearchInput
                 type="text"
                 placeholder="Search Deezer (artist or title)..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && searchMusic(searchQuery)}
+                value={musicSearchTerm}
+                onChange={(e) => setMusicSearchTerm(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && searchMusic(musicSearchTerm)}
               />
               <SearchButton
-                onClick={() => searchMusic(searchQuery)}
+                onClick={() => searchMusic(musicSearchTerm)}
                 disabled={isSearching}
               >
                 {isSearching ? '...' : 'Search'}
@@ -845,7 +1065,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, defaultBoardId }
             </SearchResults>
             <SearchModalFooter>
               <CancelButton
-                onClick={() => { setShowSongSearch(false); setSearchQuery(''); setSearchResults([]); }}
+                onClick={() => { setShowMusicSearch(false); setMusicSearchTerm(''); setMusicSearchResults([]); }}
               >
                 Cancel
               </CancelButton>
@@ -853,6 +1073,36 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, defaultBoardId }
           </SearchContent>
         </SearchModal>
       ), document.body)}
+
+      {/* Membership Error Modal */}
+      {showMembershipError && (
+        <MembershipErrorModal>
+          <MembershipErrorContent>
+            <ErrorIcon>🚫</ErrorIcon>
+            <ErrorTitle>Can't Post Here</ErrorTitle>
+            <ErrorMessage>
+              You can only post to Spheras you are a member of. Join this Sphera first, or select a different Sphera from your memberships.
+            </ErrorMessage>
+            <ErrorActions>
+              <ErrorButton
+                variant="secondary"
+                onClick={() => { 
+                  setSelectedBoard(undefined); // Clear selection to show general feed
+                  setShowMembershipError(false); 
+                }}
+              >
+                Post to General Feed
+              </ErrorButton>
+              <ErrorButton
+                variant="primary"
+                onClick={() => { setShowMembershipError(false); }}
+              >
+                Choose Different Sphera
+              </ErrorButton>
+            </ErrorActions>
+          </MembershipErrorContent>
+        </MembershipErrorModal>
+      )}
     </CreatePostContainer>
   );
 };

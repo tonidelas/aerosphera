@@ -415,9 +415,11 @@ const Navbar: React.FC = () => {
                 <NavLink as={Link} to="/boards" className={location.pathname.startsWith('/boards') || location.pathname.startsWith('/b/') ? 'active' : ''}>
                   Spheras
                 </NavLink>
+                {/* Temporarily disabled chatrooms feature
                 <NavLink as={Link} to="/chatrooms" className={location.pathname.startsWith('/chatrooms') ? 'active' : ''}>
                   Chat
                 </NavLink>
+                */}
                 <NavLink as={Link} to="/profile" className={location.pathname === '/profile' ? 'active' : ''}>
                   Profile
                 </NavLink>
@@ -454,7 +456,9 @@ const Navbar: React.FC = () => {
         {isLoggedIn && (
           <>
             <Link to="/boards" onClick={() => setIsMobileMenuOpen(false)}>Spheras</Link>
+            {/* Temporarily disabled chatrooms feature
             <Link to="/chatrooms" onClick={() => setIsMobileMenuOpen(false)}>Chat</Link>
+            */}
             <Link to="/profile" onClick={() => setIsMobileMenuOpen(false)}>Profile</Link>
             <Link to="/settings" onClick={() => setIsMobileMenuOpen(false)}>Settings</Link>
             <a onClick={() => { handleLogout(); setIsMobileMenuOpen(false); }}>Logout</a>
@@ -485,9 +489,11 @@ const Navbar: React.FC = () => {
               <DockIcon $active={location.pathname.startsWith('/boards')} to="/boards">
                 📊
               </DockIcon>
+              {/* Temporarily disabled chatrooms feature
               <DockIcon $active={location.pathname.startsWith('/chatrooms')} to="/chatrooms">
                 💬
               </DockIcon>
+              */}
               <DockIcon $active={location.pathname === '/profile'} to="/profile">
                 👤
               </DockIcon>

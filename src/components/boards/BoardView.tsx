@@ -27,7 +27,7 @@ const BoardBanner = styled.div<{ $bannerUrl?: string }>`
   height: 240px;
   max-height: 30vh;
   background: ${props => props.$bannerUrl 
-    ? `linear-gradient(135deg, rgba(52, 165, 216, 0.7) 0%, rgba(29, 107, 167, 0.8) 100%), url(${props.$bannerUrl}) center/cover`
+    ? `url(${props.$bannerUrl}) center/cover no-repeat`
     : 'linear-gradient(135deg, #52A5D8 0%, #1D6BA7 50%, #0D9EFF 100%)'
   };
   border-radius: 20px;
@@ -61,7 +61,7 @@ const BoardBanner = styled.div<{ $bannerUrl?: string }>`
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(180deg, transparent 0%, rgba(29, 107, 167, 0.4) 100%);
+    background: transparent;
     pointer-events: none;
   }
 `;
@@ -833,12 +833,14 @@ const BoardView: React.FC = () => {
               >
                 {actionLoading ? '...' : isSubscribed ? '✓ Joined' : '+ Join'}
               </ActionButton>
-              <ActionButton
-                variant="primary"
-                onClick={() => setShowCreatePost(!showCreatePost)}
-              >
-                {showCreatePost ? 'Cancel' : '+ Create Post'}
-              </ActionButton>
+              {isSubscribed && (
+                <ActionButton
+                  variant="primary"
+                  onClick={() => setShowCreatePost(!showCreatePost)}
+                >
+                  {showCreatePost ? 'Cancel' : '+ Create Post'}
+                </ActionButton>
+              )}
             </>
           )}
         </BoardActions>
@@ -846,7 +848,7 @@ const BoardView: React.FC = () => {
 
       <ContentSection>
         <PostsSection>
-          {showCreatePost && currentUserId && (
+          {showCreatePost && currentUserId && isSubscribed && (
             <CreatePostSection>
               <SectionTitle>Create a new post</SectionTitle>
               <CreatePost 

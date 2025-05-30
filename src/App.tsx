@@ -124,6 +124,7 @@ const App: React.FC = () => {
                 </ProtectedRoute>
               } 
             />
+            {/* Temporarily disabled chatrooms feature
             <Route 
               path="/chatrooms"
               element={
@@ -140,6 +141,7 @@ const App: React.FC = () => {
                 </ProtectedRoute>
               }
             />
+            */}
             <Route 
               path="/boards"
               element={
