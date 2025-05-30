@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { supabase } from '../../utils/supabaseClient';
 import { uploadImage } from '../../utils/cloudinaryUtils';
@@ -11,6 +11,9 @@ import {
   GlassInput,
 } from '../common/StyledComponents';
 import { extractYoutubeUrl, formatYoutubeLinks } from '../../utils/youtubeUtils';
+import { getBoards } from '../../utils/boardApi';
+import { Board } from '../../types/board';
+import { useSearchParams } from 'react-router-dom';
 
 // Reuse or adapt styled components from Profile.tsx or create new ones
 // Define Modal and Search components locally
@@ -147,6 +150,39 @@ const RemoveTrackButton = styled.button`
   padding: 5px;
 `;
 
+const BoardSelectContainer = styled.div`
+  margin: 12px 0;
+`;
+
+const BoardSelectLabel = styled.label`
+  display: block;
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 6px;
+  font-weight: 500;
+`;
+
+const BoardSelect = styled.select`
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: white;
+  font-size: 0.9rem;
+  color: #333;
+  cursor: pointer;
+  
+  &:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+  }
+  
+  option {
+    padding: 8px;
+  }
+`;
+
 const CreatePostContainer = styled.div`
   background: white;
   border-radius: 8px;
@@ -268,6 +304,32 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<DeezerTrack[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [boards, setBoards] = useState<Board[]>([]);
+  const [selectedBoardId, setSelectedBoardId] = useState<string>('');
+  const [searchParams] = useSearchParams();
+
+  // Fetch boards on component mount
+  useEffect(() => {
+    const fetchBoards = async () => {
+      try {
+        const boardsData = await getBoards();
+        setBoards(boardsData);
+        
+        // Check if there's a board parameter in the URL
+        const boardSlug = searchParams.get('board');
+        if (boardSlug) {
+          const board = boardsData.find(b => b.slug === boardSlug);
+          if (board) {
+            setSelectedBoardId(board.id);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching boards:', error);
+      }
+    };
+
+    fetchBoards();
+  }, [searchParams]);
 
   const searchMusic = async (query: string) => {
     if (!query.trim()) return;
@@ -402,6 +464,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
             image_url: imageUrlResult,
             background: selectedBackground,
             user_id: userId,
+            board_id: selectedBoardId || null,
             music_track_id: selectedTrack ? selectedTrack.id : null,
             music_track_info: selectedTrack ? selectedTrack : null,
             youtube_video_url: detectedYoutubeUrl
@@ -413,6 +476,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
       editorRef.current.reset();
       setSelectedTrack(null);
       setSelectedBackground(CARD_BACKGROUNDS[0]);
+      setSelectedBoardId('');
       
       setStatusMessage({ message: 'Post created successfully!', isError: false });
       setTimeout(() => setStatusMessage(null), 3000);
@@ -445,6 +509,25 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
             </RemoveTrackButton>
           </SelectedTrackPreview>
         )}
+
+        {/* Board Selection */}
+        <BoardSelectContainer>
+          <BoardSelectLabel htmlFor="board-select">
+            Post to Board (Optional)
+          </BoardSelectLabel>
+          <BoardSelect
+            id="board-select"
+            value={selectedBoardId}
+            onChange={(e) => setSelectedBoardId(e.target.value)}
+          >
+            <option value="">General Feed</option>
+            {boards.map(board => (
+              <option key={board.id} value={board.id}>
+                {board.name}
+              </option>
+            ))}
+          </BoardSelect>
+        </BoardSelectContainer>
 
         <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
           <div>

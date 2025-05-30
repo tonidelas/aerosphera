@@ -12,6 +12,9 @@ import Feed from './components/posts/Feed';
 import Settings from './components/settings/Settings';
 import Chatrooms from './components/chat/Chatrooms';
 import Chatroom from './components/chat/Chatroom';
+import BoardList from './components/boards/BoardList';
+import CreateBoard from './components/boards/CreateBoard';
+import BoardView from './components/boards/BoardView';
 import { supabase } from './utils/supabaseClient';
 
 // Protected route component
@@ -134,6 +137,30 @@ const App: React.FC = () => {
               element={
                 <ProtectedRoute>
                   <Chatroom />
+                </ProtectedRoute>
+              }
+            />
+            <Route 
+              path="/boards"
+              element={
+                <ProtectedRoute>
+                  <BoardList />
+                </ProtectedRoute>
+              }
+            />
+            <Route 
+              path="/boards/create"
+              element={
+                <ProtectedRoute>
+                  <CreateBoard />
+                </ProtectedRoute>
+              }
+            />
+            <Route 
+              path="/b/:slug"
+              element={
+                <ProtectedRoute>
+                  <BoardView />
                 </ProtectedRoute>
               }
             />

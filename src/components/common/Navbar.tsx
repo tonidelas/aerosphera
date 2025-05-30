@@ -412,7 +412,10 @@ const Navbar: React.FC = () => {
                 <NavLink as={Link} to="/search" className={location.pathname === '/search' ? 'active' : ''}>
                   Search
                 </NavLink>
-                <NavLink as={Link} to="/chatrooms" className={location.pathname.startsWith('/chatrooms') ? 'active' : ''}> {/* Chatrooms Link moved here */}
+                <NavLink as={Link} to="/boards" className={location.pathname.startsWith('/boards') || location.pathname.startsWith('/b/') ? 'active' : ''}>
+                  Boards
+                </NavLink>
+                <NavLink as={Link} to="/chatrooms" className={location.pathname.startsWith('/chatrooms') ? 'active' : ''}>
                   Chat
                 </NavLink>
                 <NavLink as={Link} to="/profile" className={location.pathname === '/profile' ? 'active' : ''}>
@@ -450,6 +453,7 @@ const Navbar: React.FC = () => {
         <Link to="/" onClick={() => setIsMobileMenuOpen(false)}>Home</Link>
         {isLoggedIn && (
           <>
+            <Link to="/boards" onClick={() => setIsMobileMenuOpen(false)}>Boards</Link>
             <Link to="/chatrooms" onClick={() => setIsMobileMenuOpen(false)}>Chat</Link>
             <Link to="/profile" onClick={() => setIsMobileMenuOpen(false)}>Profile</Link>
             <Link to="/settings" onClick={() => setIsMobileMenuOpen(false)}>Settings</Link>
@@ -478,7 +482,10 @@ const Navbar: React.FC = () => {
               <DockIcon $active={location.pathname === '/search'} to="/search">
                 🔍
               </DockIcon>
-              <DockIcon $active={location.pathname.startsWith('/chatrooms')} to="/chatrooms"> {/* Chatrooms Icon moved here */}
+              <DockIcon $active={location.pathname.startsWith('/boards')} to="/boards">
+                📊
+              </DockIcon>
+              <DockIcon $active={location.pathname.startsWith('/chatrooms')} to="/chatrooms">
                 💬
               </DockIcon>
               <DockIcon $active={location.pathname === '/profile'} to="/profile">
