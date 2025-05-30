@@ -17,23 +17,90 @@ const UploadContainer = styled.div`
 `;
 
 const UploadArea = styled.div<{ isDragOver: boolean }>`
-  border: 2px dashed ${props => props.isDragOver ? '#64ffda' : 'rgba(255, 255, 255, 0.3)'};
-  border-radius: 8px;
-  padding: 20px;
+  border: 3px dashed ${props => props.isDragOver ? '#52A5D8' : '#52A5D8'};
+  border-radius: 12px;
+  padding: 32px 20px;
   text-align: center;
-  background: ${props => props.isDragOver ? 'rgba(100, 255, 218, 0.1)' : 'rgba(255, 255, 255, 0.05)'};
+  background: ${props => props.isDragOver 
+    ? 'linear-gradient(135deg, rgba(52, 165, 216, 0.15), rgba(29, 107, 167, 0.1))' 
+    : 'linear-gradient(135deg, rgba(52, 165, 216, 0.08), rgba(29, 107, 167, 0.05))'
+  };
   transition: all 0.3s ease;
   cursor: pointer;
+  position: relative;
+  box-shadow: 0 4px 12px rgba(52, 165, 216, 0.15);
+  
+  @media (max-width: 768px) {
+    padding: 24px 16px;
+    border-radius: 10px;
+    border-width: 2px;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 20px 12px;
+    border-radius: 8px;
+  }
   
   &:hover {
-    border-color: #64ffda;
-    background: rgba(100, 255, 218, 0.1);
+    border-color: #1D6BA7;
+    background: linear-gradient(135deg, rgba(52, 165, 216, 0.15), rgba(29, 107, 167, 0.1));
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(52, 165, 216, 0.2);
+    
+    @media (max-width: 480px) {
+      transform: translateY(-1px);
+    }
+  }
+  
+  &::before {
+    content: '📁';
+    display: block;
+    font-size: 2.5rem;
+    margin-bottom: 12px;
+    opacity: 0.7;
+    
+    @media (max-width: 768px) {
+      font-size: 2rem;
+      margin-bottom: 10px;
+    }
+    
+    @media (max-width: 480px) {
+      font-size: 1.8rem;
+      margin-bottom: 8px;
+    }
   }
 `;
 
 const UploadText = styled.div`
-  color: rgba(255, 255, 255, 0.8);
+  color: #1D6BA7;
   margin-bottom: 8px;
+  font-weight: 600;
+  font-size: 1.1rem;
+  
+  @media (max-width: 768px) {
+    font-size: 1rem;
+  }
+  
+  @media (max-width: 480px) {
+    font-size: 0.95rem;
+    margin-bottom: 6px;
+  }
+`;
+
+const UploadSubtext = styled.div`
+  color: #666;
+  font-size: 0.9rem;
+  margin-top: 8px;
+  opacity: 0.8;
+  
+  @media (max-width: 768px) {
+    font-size: 0.85rem;
+  }
+  
+  @media (max-width: 480px) {
+    font-size: 0.8rem;
+    margin-top: 6px;
+  }
 `;
 
 const HiddenInput = styled.input`
@@ -43,39 +110,97 @@ const HiddenInput = styled.input`
 const PreviewContainer = styled.div`
   position: relative;
   display: inline-block;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 12px;
+  padding: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 2px solid rgba(52, 165, 216, 0.3);
 `;
 
 const PreviewImage = styled.img`
   max-width: 200px;
   max-height: 150px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  object-fit: cover;
+  width: 100%;
+  height: auto;
+  
+  @media (max-width: 768px) {
+    max-width: 180px;
+    max-height: 135px;
+  }
+  
+  @media (max-width: 480px) {
+    max-width: 150px;
+    max-height: 110px;
+  }
 `;
 
 const RemoveButton = styled.button`
   position: absolute;
   top: -8px;
   right: -8px;
-  background: #ff5252;
+  background: linear-gradient(135deg, #ff5252, #d32f2f);
   color: white;
   border: none;
   border-radius: 50%;
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: 14px;
+  font-weight: bold;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
   
   &:hover {
-    background: #d32f2f;
+    background: linear-gradient(135deg, #d32f2f, #b71c1c);
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   }
 `;
 
 const ErrorText = styled.div`
-  color: #ff5252;
-  font-size: 0.85rem;
+  color: #d32f2f;
+  font-size: 0.9rem;
+  background: rgba(211, 47, 47, 0.1);
+  border: 1px solid rgba(211, 47, 47, 0.3);
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 8px;
+  text-align: center;
+  font-weight: 500;
+`;
+
+const SelectedFileIndicator = styled.div`
+  background: linear-gradient(135deg, #4caf50, #388e3c);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+  
+  @media (max-width: 768px) {
+    font-size: 0.85rem;
+    padding: 6px 14px;
+  }
+  
+  @media (max-width: 480px) {
+    font-size: 0.8rem;
+    padding: 6px 12px;
+    border-radius: 16px;
+  }
+  
+  &::before {
+    content: '✓';
+  }
 `;
 
 const FileUpload: React.FC<FileUploadProps> = ({
@@ -182,9 +307,9 @@ const FileUpload: React.FC<FileUploadProps> = ({
         <UploadText>
           {selectedFile ? selectedFile.name : `Click to upload ${label.toLowerCase()} or drag and drop`}
         </UploadText>
-        <div style={{ fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.6)' }}>
+        <UploadSubtext>
           {helperText || `Supports: ${acceptedTypes} (max ${maxSizeMB}MB)`}
-        </div>
+        </UploadSubtext>
         
         <HiddenInput
           ref={fileInputRef}
@@ -193,6 +318,12 @@ const FileUpload: React.FC<FileUploadProps> = ({
           onChange={handleInputChange}
         />
       </UploadArea>
+
+      {selectedFile && !error && (
+        <SelectedFileIndicator>
+          File selected: {selectedFile.name}
+        </SelectedFileIndicator>
+      )}
 
       {error && <ErrorText>{error}</ErrorText>}
 
