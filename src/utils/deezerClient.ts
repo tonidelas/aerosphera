@@ -1,5 +1,4 @@
-// Use deployed Vercel proxy for Deezer API requests with CORS proxy
-const DEEZER_PROXY_URL = 'https://corsproxy.io/?https://proxyforaerofy-7u67k38z1-tonidelas-projects.vercel.app/api/deezer-search';
+const DEEZER_PROXY_URL = 'https://api.allorigins.win/raw?url=https://proxyforaerofy-7u67k38z1-tonidelas-projects.vercel.app/api/deezer-search';
 
 export interface DeezerTrack {
   id: string;
