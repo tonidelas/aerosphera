@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { Board } from '../../types/board';
-import { getBoardBySlug, getBoardPosts, subscribeToBoard, unsubscribeFromBoard, isUserSubscribed, getBoardMemberCount } from '../../utils/boardApi';
+import { getBoardBySlug, getBoardPosts, subscribeToBoard, unsubscribeFromBoard, isUserSubscribed, getBoardMemberCount, deleteBoard } from '../../utils/boardApi';
 import { supabase } from '../../utils/supabaseClient';
 import Post from '../posts/Post';
 import CreatePost from '../posts/CreatePost';
+import SpheraRules from './SpheraRules';
+import { getBoardRules, getUserRoleInBoard, isMemberBanned } from '../../utils/moderationApi';
+import { BoardRule } from '../../types/moderation';
 
 const BoardContainer = styled.div`
   max-width: 1400px;
@@ -663,8 +666,28 @@ const EmptyStateSubtext = styled.div`
   }
 `;
 
+const OwnerBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(90deg, #1D6BA7, #52A5D8);
+  padding: 4px 12px;
+  border-radius: 20px;
+  margin-left: 8px;
+  letter-spacing: 0.3px;
+  
+  @media (max-width: 480px) {
+    font-size: 0.75rem;
+    padding: 3px 10px;
+  }
+`;
+
 const BoardView: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
+  const navigate = useNavigate();
   const [board, setBoard] = useState<Board | null>(null);
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -674,6 +697,9 @@ const BoardView: React.FC = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [memberCount, setMemberCount] = useState(0);
   const [showCreatePost, setShowCreatePost] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [rules, setRules] = useState<BoardRule[]>([]);
+  const [bannedInfo, setBannedInfo] = useState<{ reason: string | null; expires_at: string | null } | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -694,9 +720,28 @@ const BoardView: React.FC = () => {
         }
         setBoard(boardData);
 
+        // Check if user is banned
+        if (user?.id) {
+          const ban = await isMemberBanned(boardData.id, user.id);
+          if (ban) {
+            setBannedInfo({ reason: ban.reason, expires_at: ban.expires_at });
+            setLoading(false);
+            return;
+          }
+          // Get user role (owner/mod/member)
+          const role = await getUserRoleInBoard(boardData.id, user.id);
+          setUserRole(role);
+        }
+
         // Fetch posts for this board with full post data
         const postsData = await getBoardPosts(boardData.id);
         setPosts(postsData);
+
+        // Load rules
+        try {
+          const rulesData = await getBoardRules(boardData.id);
+          setRules(rulesData);
+        } catch { /* non-critical */ }
 
         // Get member count
         try {
@@ -792,9 +837,47 @@ const BoardView: React.FC = () => {
     }
   };
 
+  const handleDeleteBoard = async () => {
+    if (!board || !currentUserId || board.creator_user_id !== currentUserId) return;
+    
+    if (window.confirm('Are you sure you want to delete this Sphera? This action cannot be undone.')) {
+      setActionLoading(true);
+      try {
+        await deleteBoard(board.id);
+        navigate('/boards');
+      } catch (err) {
+        console.error('Error deleting board:', err);
+        alert('Failed to delete Sphera');
+      } finally {
+        setActionLoading(false);
+      }
+    }
+  };
+
   if (loading) return <LoadingText>Loading Sphera...</LoadingText>;
   if (error) return <ErrorText>{error}</ErrorText>;
   if (!board) return <ErrorText>Sphera not found</ErrorText>;
+
+  // Banned user wall
+  if (bannedInfo) {
+    return (
+      <div style={{ maxWidth: 500, margin: '80px auto', textAlign: 'center', padding: '0 20px' }}>
+        <div style={{ fontSize: '3rem', marginBottom: 16 }}>🚫</div>
+        <h2 style={{ color: '#dc004e', marginBottom: 12 }}>You are banned from this Sphera</h2>
+        {bannedInfo.reason && <p style={{ color: '#666', marginBottom: 8 }}>Reason: <strong>{bannedInfo.reason}</strong></p>}
+        {bannedInfo.expires_at ? (
+          <p style={{ color: '#666' }}>Ban expires: {new Date(bannedInfo.expires_at).toLocaleDateString()}</p>
+        ) : (
+          <p style={{ color: '#666' }}>This is a permanent ban.</p>
+        )}
+        <a href="/boards" style={{ color: '#1D6BA7', marginTop: 20, display: 'inline-block', fontWeight: 600 }}>← Back to Spheras</a>
+      </div>
+    );
+  }
+
+  const isMod = userRole === 'owner' || userRole === 'moderator';
+  const pinnedPosts = posts.filter((p: any) => p.is_pinned);
+  const regularPosts = posts.filter((p: any) => !p.is_pinned);
 
   return (
     <BoardContainer>
@@ -804,7 +887,15 @@ const BoardView: React.FC = () => {
         <BoardHeader>
           <BoardIcon $iconUrl={board.icon_image_url || undefined} />
           <BoardTitleSection>
-            <BoardTitle>{board.name}</BoardTitle>
+            <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
+              <BoardTitle style={{ margin: 0 }}>{board.name}</BoardTitle>
+              {board.creator_user_id === currentUserId && (
+                <OwnerBadge>👑 Owner</OwnerBadge>
+              )}
+              {userRole === 'moderator' && (
+                <OwnerBadge style={{ background: 'linear-gradient(90deg, #52A5D8, #1D6BA7)' }}>🛡️ Mod</OwnerBadge>
+              )}
+            </div>
             <BoardSlug>/b/{board.slug}</BoardSlug>
             <BoardStats>
               <Stat>
@@ -826,19 +917,43 @@ const BoardView: React.FC = () => {
         <BoardActions>
           {currentUserId && (
             <>
-              <ActionButton
-                variant={isSubscribed ? 'success' : 'primary'}
-                onClick={handleSubscriptionToggle}
-                disabled={actionLoading}
-              >
-                {actionLoading ? '...' : isSubscribed ? '✓ Joined' : '+ Join'}
-              </ActionButton>
-              {isSubscribed && (
+              {/* Only show Join/Leave for non-owners */}
+              {board.creator_user_id !== currentUserId && (
+                <ActionButton
+                  variant={isSubscribed ? 'success' : 'primary'}
+                  onClick={handleSubscriptionToggle}
+                  disabled={actionLoading}
+                >
+                  {actionLoading ? '...' : isSubscribed ? '✓ Joined' : '+ Join'}
+                </ActionButton>
+              )}
+              {/* Show Create Post if subscribed OR owner */}
+              {(isSubscribed || board.creator_user_id === currentUserId) && (
                 <ActionButton
                   variant="primary"
                   onClick={() => setShowCreatePost(!showCreatePost)}
                 >
                   {showCreatePost ? 'Cancel' : '+ Create Post'}
+                </ActionButton>
+              )}
+              {/* Manage button for owner/mods */}
+              {isMod && (
+                <ActionButton
+                  as={Link}
+                  to={`/b/${board.slug}/manage`}
+                  variant="primary"
+                  style={{ textDecoration: 'none' }}
+                >
+                  ⚙️ Manage
+                </ActionButton>
+              )}
+              {board.creator_user_id === currentUserId && (
+                <ActionButton
+                  variant="secondary"
+                  onClick={handleDeleteBoard}
+                  disabled={actionLoading}
+                >
+                  Delete Sphera
                 </ActionButton>
               )}
             </>
@@ -847,8 +962,15 @@ const BoardView: React.FC = () => {
       </BoardInfo>
 
       <ContentSection>
+        {/* Rules sidebar */}
+        {rules.length > 0 && (
+          <div style={{ marginBottom: 24 }}>
+            <SpheraRules rules={rules} />
+          </div>
+        )}
+
         <PostsSection>
-          {showCreatePost && currentUserId && isSubscribed && (
+          {showCreatePost && currentUserId && (isSubscribed || board.creator_user_id === currentUserId) && (
             <CreatePostSection>
               <SectionTitle>Create a new post</SectionTitle>
               <CreatePost 
@@ -858,9 +980,46 @@ const BoardView: React.FC = () => {
             </CreatePostSection>
           )}
           
+          {/* Pinned posts */}
+          {pinnedPosts.length > 0 && (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                <span style={{ fontSize: '1rem', fontWeight: 700, color: '#1D6BA7' }}>📌 Pinned</span>
+                <div style={{ flex: 1, height: 1, background: 'rgba(52, 165, 216, 0.3)' }} />
+              </div>
+              {pinnedPosts.map((post: any) => (
+                <Post
+                  key={post.id}
+                  id={post.id}
+                  content={post.content}
+                  image_url={post.image_url}
+                  username={post.profiles?.username || 'Unknown User'}
+                  avatar_url={post.profiles?.avatar_url}
+                  likes_count={post.likes_count || 0}
+                  is_liked={post.is_liked || false}
+                  onLike={handleLike}
+                  user_id={post.user_id}
+                  currentUserId={currentUserId}
+                  onDelete={handleDeletePost}
+                  created_at={post.created_at}
+                  background={post.background}
+                  music_track_info={post.music_track_info}
+                  youtube_video_url={post.youtube_video_url}
+                  boardId={board.id}
+                  isMod={isMod}
+                  isPinned={true}
+                />
+              ))}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, marginTop: 8 }}>
+                <span style={{ fontSize: '1rem', fontWeight: 700, color: '#666' }}>All Posts</span>
+                <div style={{ flex: 1, height: 1, background: 'rgba(52, 165, 216, 0.2)' }} />
+              </div>
+            </>
+          )}
+
           <SectionTitle>Posts</SectionTitle>
           
-          {posts.length === 0 ? (
+          {regularPosts.length === 0 && pinnedPosts.length === 0 ? (
             <EmptyState>
               <EmptyStateIcon>📝</EmptyStateIcon>
               <EmptyStateText>No posts yet in this Sphera</EmptyStateText>
@@ -869,7 +1028,7 @@ const BoardView: React.FC = () => {
               </EmptyStateSubtext>
             </EmptyState>
           ) : (
-            posts.map(post => (
+            regularPosts.map((post: any) => (
               <Post
                 key={post.id}
                 id={post.id}
@@ -887,6 +1046,9 @@ const BoardView: React.FC = () => {
                 background={post.background}
                 music_track_info={post.music_track_info}
                 youtube_video_url={post.youtube_video_url}
+                boardId={board.id}
+                isMod={isMod}
+                isPinned={false}
               />
             ))
           )}

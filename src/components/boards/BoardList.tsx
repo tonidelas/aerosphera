@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { Board } from '../../types/board';
-import { getBoards, subscribeToBoard, unsubscribeFromBoard, isUserSubscribed } from '../../utils/boardApi';
+import { getBoards, subscribeToBoard, unsubscribeFromBoard, isUserSubscribed, deleteBoard } from '../../utils/boardApi';
 import { supabase } from '../../utils/supabaseClient';
 
 const BoardListContainer = styled.div`
@@ -501,6 +501,55 @@ const EmptyStateSubtext = styled.div`
   }
 `;
 
+const OwnerBadge = styled.span`
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(90deg, #1D6BA7, #52A5D8);
+  padding: 3px 10px;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  
+  @media (max-width: 480px) {
+    font-size: 0.7rem;
+    padding: 2px 8px;
+  }
+`;
+
+const DeleteBoardButton = styled.button`
+  background: rgba(220, 0, 78, 0.1);
+  border: 1px solid rgba(220, 0, 78, 0.4);
+  color: #dc004e;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  
+  &:hover {
+    background: rgba(220, 0, 78, 0.2);
+    transform: translateY(-1px);
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+  
+  @media (max-width: 480px) {
+    font-size: 0.75rem;
+    padding: 5px 10px;
+  }
+`;
+
+
 const BoardList: React.FC = () => {
   const [boards, setBoards] = useState<Board[]>([]);
   const [loading, setLoading] = useState(true);
@@ -524,16 +573,15 @@ const BoardList: React.FC = () => {
 
         // Check subscriptions for authenticated user
         if (user?.id) {
-          const subscriptionChecks = await Promise.all(
-            boardsData.map(board => isUserSubscribed(board.id, user.id))
-          );
-          
+          // Fetch all subscriptions in a single query
+          const { data: subData } = await supabase
+            .from('board_subscriptions')
+            .select('board_id')
+            .eq('user_id', user.id);
+
           const subscribedBoardIds = new Set(
-            boardsData
-              .filter((_, index) => subscriptionChecks[index])
-              .map(board => board.id)
+            (subData || []).map((s: any) => s.board_id)
           );
-          
           setSubscriptions(subscribedBoardIds);
         }
       } catch (err) {
@@ -576,6 +624,26 @@ const BoardList: React.FC = () => {
     }
   };
 
+  const handleDeleteBoard = async (boardId: string) => {
+    if (!currentUserId) return;
+    if (!window.confirm('Are you sure you want to delete this Sphera? This action cannot be undone.')) return;
+
+    setActionLoading(prev => new Set(prev).add(boardId));
+    try {
+      await deleteBoard(boardId);
+      setBoards(prev => prev.filter(b => b.id !== boardId));
+    } catch (err) {
+      console.error('Error deleting board:', err);
+      setError('Failed to delete Sphera');
+    } finally {
+      setActionLoading(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(boardId);
+        return newSet;
+      });
+    }
+  };
+
   if (loading) return <LoadingText>Loading Spheras...</LoadingText>;
   if (error) return <ErrorText>{error}</ErrorText>;
 
@@ -608,20 +676,33 @@ const BoardList: React.FC = () => {
               <BoardCard key={board.id}>
                 <BoardSlug>/b/{board.slug}</BoardSlug>
                 <BoardHeader>
-                  <div style={{ flex: 1 }}>
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     <BoardTitleLink to={`/b/${board.slug}`}>
                       {board.name}
                     </BoardTitleLink>
+                    {board.creator_user_id === currentUserId && (
+                      <OwnerBadge>👑 Owner</OwnerBadge>
+                    )}
                   </div>
-                  {currentUserId && (
-                    <SubscribeButton
-                      $isSubscribed={isSubscribed}
-                      onClick={() => handleSubscriptionToggle(board.id, isSubscribed)}
-                      disabled={isLoading}
-                    >
-                      {isLoading ? '...' : isSubscribed ? 'Joined' : 'Join'}
-                    </SubscribeButton>
-                  )}
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
+                    {currentUserId && (
+                      <SubscribeButton
+                        $isSubscribed={isSubscribed}
+                        onClick={() => handleSubscriptionToggle(board.id, isSubscribed)}
+                        disabled={isLoading}
+                      >
+                        {isLoading ? '...' : isSubscribed ? 'Joined' : 'Join'}
+                      </SubscribeButton>
+                    )}
+                    {board.creator_user_id === currentUserId && (
+                      <DeleteBoardButton
+                        onClick={() => handleDeleteBoard(board.id)}
+                        disabled={isLoading}
+                      >
+                        🗑 Delete
+                      </DeleteBoardButton>
+                    )}
+                  </div>
                 </BoardHeader>
                 
                 {board.description && (

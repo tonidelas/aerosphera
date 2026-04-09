@@ -15,6 +15,7 @@ import Chatroom from './components/chat/Chatroom';
 import BoardList from './components/boards/BoardList';
 import CreateBoard from './components/boards/CreateBoard';
 import BoardView from './components/boards/BoardView';
+import ManageSpheraPage from './components/boards/ManageSpheraPage';
 import { supabase } from './utils/supabaseClient';
 
 // Protected route component
@@ -163,6 +164,14 @@ const App: React.FC = () => {
               element={
                 <ProtectedRoute>
                   <BoardView />
+                </ProtectedRoute>
+              }
+            />
+            <Route 
+              path="/b/:slug/manage"
+              element={
+                <ProtectedRoute>
+                  <ManageSpheraPage />
                 </ProtectedRoute>
               }
             />

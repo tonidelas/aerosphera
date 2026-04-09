@@ -12,10 +12,12 @@ export const generateSlug = (name: string): string => {
     .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
 };
 
-// Create a new board
+// Create a new board and auto-subscribe the creator
 export const createBoard = async (input: CreateBoardInput): Promise<Board> => {
   const slug = generateSlug(input.name);
-  
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('User not authenticated');
+
   const { data, error } = await supabase
     .from('boards')
     .insert({
@@ -24,11 +26,20 @@ export const createBoard = async (input: CreateBoardInput): Promise<Board> => {
       description: input.description,
       banner_image_url: input.banner_image_url,
       icon_image_url: input.icon_image_url,
+      creator_user_id: user.id,
     })
     .select()
     .single();
 
   if (error) throw error;
+
+  // Auto-subscribe the creator so they can post immediately
+  await supabase
+    .from('board_subscriptions')
+    .insert({ board_id: data.id, user_id: user.id })
+    .select()
+    .maybeSingle(); // ignore error if already subscribed
+
   return data;
 };
 

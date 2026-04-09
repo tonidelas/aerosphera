@@ -10,6 +10,7 @@ import { getYoutubeVideoId, extractYoutubeUrl, formatYoutubeLinks } from '../../
 import { useSuppressYouTubeErrors } from '../../utils/errorHandling';
 import { isValidImageUrl, handleImageError } from '../../utils/imageUtils';
 import { Board } from '../../types/board';
+import { reportPost, pinPost, modRemovePost } from '../../utils/moderationApi';
 
 const PostContainer = styled.div<{ $background?: string }>`
   background: ${ (props: { $background?: string }) => props.$background || 'white'};
@@ -316,6 +317,12 @@ interface PostProps {
   youtube_video_url?: string | null;
   onProfileClick?: (userId: string) => void;
   board?: Board | null;
+  // Moderation context (passed from BoardView)
+  boardId?: string;
+  isMod?: boolean;
+  isPinned?: boolean;
+  removed_by?: string | null;
+  removal_reason?: string | null;
 }
 
 const Post: React.FC<PostProps> = ({
@@ -337,7 +344,12 @@ const Post: React.FC<PostProps> = ({
   music_track_info,
   youtube_video_url,
   onProfileClick,
-  board
+  board,
+  boardId,
+  isMod = false,
+  isPinned = false,
+  removed_by,
+  removal_reason,
 }) => {
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [editing, setEditing] = React.useState(false);
@@ -350,7 +362,6 @@ const Post: React.FC<PostProps> = ({
   const [localTrackInfo, setLocalTrackInfo] = React.useState(music_track_info);
   const postAudioRef = React.useRef<HTMLAudioElement>(null);
   const [isPostPlaying, setIsPostPlaying] = React.useState(false);
-
   const [isLikedState, setIsLikedState] = React.useState(is_liked);
   const [likesCountState, setLikesCountState] = React.useState(likes_count);
   const [showMenu, setShowMenu] = React.useState(false);
@@ -361,6 +372,14 @@ const Post: React.FC<PostProps> = ({
   const [isPlaying, setIsPlaying] = React.useState(false);
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
   const editEditorRef = React.useRef<SimpleEditorHandle>(null);
+  // Moderation state
+  const [showReportDialog, setShowReportDialog] = React.useState(false);
+  const [reportReason, setReportReason] = React.useState('');
+  const [reportSent, setReportSent] = React.useState(false);
+  const [isRemoved, setIsRemoved] = React.useState(!!removed_by);
+  const [showModRemoveDialog, setShowModRemoveDialog] = React.useState(false);
+  const [modRemoveReason, setModRemoveReason] = React.useState('');
+  const [localIsPinned, setLocalIsPinned] = React.useState(isPinned);
 
   const isOwner = currentUserId === user_id;
   const defaultAvatar = '/default-avatar.png';
@@ -498,6 +517,43 @@ const Post: React.FC<PostProps> = ({
     setShowDeleteConfirm(false);
   };
 
+  // Moderation handlers
+  const handleReport = async () => {
+    if (!boardId || !reportReason.trim()) return;
+    try {
+      await reportPost(id, boardId, reportReason.trim());
+      setReportSent(true);
+      setReportReason('');
+      setTimeout(() => { setShowReportDialog(false); setReportSent(false); }, 2000);
+    } catch (err) {
+      console.error('Error reporting post:', err);
+    }
+  };
+
+  const handlePinToggle = async () => {
+    if (!boardId) return;
+    setMenuOpen(false);
+    try {
+      await pinPost(boardId, id, !localIsPinned);
+      setLocalIsPinned(p => !p);
+      onDelete(); // refresh
+    } catch (err) {
+      console.error('Error pinning post:', err);
+    }
+  };
+
+  const handleModRemove = async () => {
+    if (!boardId || !modRemoveReason.trim()) return;
+    try {
+      await modRemovePost(boardId, id, modRemoveReason.trim());
+      setIsRemoved(true);
+      setShowModRemoveDialog(false);
+      setModRemoveReason('');
+    } catch (err) {
+      console.error('Error removing post:', err);
+    }
+  };
+
   // Use the imported utility, prioritize youtube_video_url field but also check content
   const videoId = youtube_video_url ? getYoutubeVideoId(youtube_video_url) : getYoutubeVideoId(content);
 
@@ -525,6 +581,18 @@ const Post: React.FC<PostProps> = ({
 
   return (
     <PostContainer $background={background}>
+      {/* Pinned indicator */}
+      {localIsPinned && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, fontSize: '0.8rem', color: '#1D6BA7', fontWeight: 700 }}>
+          📌 Pinned post
+        </div>
+      )}
+      {/* Removed placeholder */}
+      {isRemoved && (
+        <div style={{ padding: '16px 20px', borderRadius: 8, background: 'rgba(150,150,150,0.08)', border: '1px dashed rgba(150,150,150,0.35)', color: '#999', fontSize: '0.9rem', fontStyle: 'italic' }}>
+          ⚠️ This post has been removed by a moderator.
+        </div>
+      )}
       {board && (
         <BoardInfo as={Link} to={`/b/${board.slug}`}>
           {board.icon_image_url ? (
@@ -595,6 +663,45 @@ const Post: React.FC<PostProps> = ({
               </MenuDropdown>
             )}
           </div>
+        )}
+        {/* Mod menu (for mods/owners who don't own the post) */}
+        {isMod && currentUserId !== user_id && boardId && (
+          <div ref={menuRef} style={{ position: 'relative', marginLeft: 'auto' }}>
+            <MenuButton onClick={() => setMenuOpen(m => !m)} title="Mod options">
+              🛡️
+            </MenuButton>
+            {menuOpen && (
+              <MenuDropdown>
+                <MenuItem onClick={handlePinToggle}>{localIsPinned ? 'Unpin Post' : 'Pin Post'}</MenuItem>
+                <MenuItem onClick={() => { setMenuOpen(false); setShowModRemoveDialog(true); }} style={{ color: '#dc004e' }}>Remove Post</MenuItem>
+              </MenuDropdown>
+            )}
+          </div>
+        )}
+        {/* Mod pin/remove for own posts too */}
+        {isMod && currentUserId === user_id && boardId && (
+          <div ref={menuRef} style={{ position: 'relative', marginLeft: 'auto' }}>
+            <MenuButton onClick={() => setMenuOpen(m => !m)} title="Post options">
+              <ThreeDots />
+            </MenuButton>
+            {menuOpen && (
+              <MenuDropdown>
+                <MenuItem onClick={handleEdit}>Edit</MenuItem>
+                <MenuItem onClick={handlePinToggle}>{localIsPinned ? 'Unpin Post' : 'Pin Post'}</MenuItem>
+                <MenuItem onClick={handleDelete}>Delete</MenuItem>
+              </MenuDropdown>
+            )}
+          </div>
+        )}
+        {/* Report button for non-owners */}
+        {currentUserId && currentUserId !== user_id && boardId && !isMod && (
+          <button
+            onClick={() => setShowReportDialog(true)}
+            style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: '#bbb', fontSize: '0.8rem', padding: '4px 8px' }}
+            title="Report post"
+          >
+            🚩
+          </button>
         )}
       </PostHeader>
       
@@ -681,8 +788,52 @@ const Post: React.FC<PostProps> = ({
           <span>{likes_count}</span>
         </LikeButton>
       </PostFooter>
+
+      {/* Report Dialog */}
+      {showReportDialog && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 20 }}>
+          <div style={{ background: 'white', borderRadius: 16, padding: 28, maxWidth: 400, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+            <h3 style={{ margin: '0 0 16px 0', color: '#333' }}>🚩 Report Post</h3>
+            {reportSent ? (
+              <p style={{ color: '#2e7d32', textAlign: 'center', fontWeight: 600 }}>✅ Report submitted! Thank you.</p>
+            ) : (
+              <>
+                <textarea
+                  value={reportReason}
+                  onChange={e => setReportReason(e.target.value)}
+                  placeholder="Why are you reporting this post? (e.g. spam, harassment, misinformation)"
+                  style={{ width: '100%', minHeight: 90, padding: 12, border: '2px solid #eee', borderRadius: 8, fontFamily: 'inherit', fontSize: '0.9rem', boxSizing: 'border-box', resize: 'vertical' }}
+                />
+                <div style={{ display: 'flex', gap: 10, marginTop: 14, justifyContent: 'flex-end' }}>
+                  <button onClick={() => { setShowReportDialog(false); setReportReason(''); }} style={{ padding: '8px 16px', border: '1px solid #ddd', borderRadius: 20, background: '#f5f5f5', cursor: 'pointer', fontWeight: 600 }}>Cancel</button>
+                  <button onClick={handleReport} disabled={!reportReason.trim()} style={{ padding: '8px 16px', border: 'none', borderRadius: 20, background: reportReason.trim() ? '#dc004e' : '#eee', color: reportReason.trim() ? 'white' : '#999', cursor: reportReason.trim() ? 'pointer' : 'not-allowed', fontWeight: 600 }}>Submit Report</button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Mod Remove Dialog */}
+      {showModRemoveDialog && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 20 }}>
+          <div style={{ background: 'white', borderRadius: 16, padding: 28, maxWidth: 400, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+            <h3 style={{ margin: '0 0 16px 0', color: '#dc004e' }}>🛡️ Remove Post</h3>
+            <textarea
+              value={modRemoveReason}
+              onChange={e => setModRemoveReason(e.target.value)}
+              placeholder="Reason for removal (shown in mod log)"
+              style={{ width: '100%', minHeight: 80, padding: 12, border: '2px solid #eee', borderRadius: 8, fontFamily: 'inherit', fontSize: '0.9rem', boxSizing: 'border-box', resize: 'vertical' }}
+            />
+            <div style={{ display: 'flex', gap: 10, marginTop: 14, justifyContent: 'flex-end' }}>
+              <button onClick={() => { setShowModRemoveDialog(false); setModRemoveReason(''); }} style={{ padding: '8px 16px', border: '1px solid #ddd', borderRadius: 20, background: '#f5f5f5', cursor: 'pointer', fontWeight: 600 }}>Cancel</button>
+              <button onClick={handleModRemove} disabled={!modRemoveReason.trim()} style={{ padding: '8px 16px', border: 'none', borderRadius: 20, background: modRemoveReason.trim() ? '#dc004e' : '#eee', color: modRemoveReason.trim() ? 'white' : '#999', cursor: modRemoveReason.trim() ? 'pointer' : 'not-allowed', fontWeight: 600 }}>Remove Post</button>
+            </div>
+          </div>
+        </div>
+      )}
     </PostContainer>
   );
 };
 
-export default Post; 
+export default Post;

@@ -480,7 +480,7 @@ const CreateBoard: React.FC = () => {
 
   return (
     <FormContainer>
-      <FormTitle>Create New Board</FormTitle>
+      <FormTitle>Create New Sphera</FormTitle>
       <FormSubtitle>
         Build a community around your interests and start meaningful conversations
       </FormSubtitle>
@@ -489,7 +489,7 @@ const CreateBoard: React.FC = () => {
         {error && <ErrorMessage>{error}</ErrorMessage>}
         
         <FormGroup>
-          <Label htmlFor="name">Board Name *</Label>
+          <Label htmlFor="name">Sphera Name *</Label>
           <Input
             type="text"
             id="name"
@@ -506,7 +506,7 @@ const CreateBoard: React.FC = () => {
             </SlugPreview>
           )}
           <HelperText>
-            Choose a clear, descriptive name for your board. This will be used in the URL.
+            Choose a clear, descriptive name for your Sphera. This will be used in the URL.
           </HelperText>
         </FormGroup>
 
@@ -517,10 +517,10 @@ const CreateBoard: React.FC = () => {
             name="description"
             value={formData.description}
             onChange={handleInputChange}
-            placeholder="Describe what this board is about, its purpose, and what kind of discussions are welcome..."
+            placeholder="Describe what this Sphera is about, its purpose, and what kind of discussions are welcome..."
           />
           <HelperText>
-            Help users understand what your board is about and what kind of content is appropriate.
+            Help users understand what your Sphera is about and what kind of content is appropriate.
           </HelperText>
         </FormGroup>
 
@@ -532,7 +532,7 @@ const CreateBoard: React.FC = () => {
               onFileSelect={setBannerFile}
               currentUrl={formData.banner_image_url}
               label="Banner Image"
-              helperText="A banner image that will be displayed at the top of your board (recommended: 1200x300px)"
+              helperText="A banner image that will be displayed at the top of your Sphera (recommended: 1200x300px)"
               maxSizeMB={10}
             />
           </FileUploadSection>
@@ -556,7 +556,7 @@ const CreateBoard: React.FC = () => {
               onFileSelect={setIconFile}
               currentUrl={formData.icon_image_url}
               label="Icon Image"
-              helperText="A small icon that represents your board (recommended: square, 256x256px)"
+              helperText="A small icon that represents your Sphera (recommended: square, 256x256px)"
               maxSizeMB={5}
             />
           </FileUploadSection>
@@ -577,7 +577,7 @@ const CreateBoard: React.FC = () => {
             Cancel
           </Button>
           <Button type="submit" variant="primary" disabled={loading}>
-            {loading ? 'Creating...' : 'Create Board'}
+            {loading ? 'Creating...' : '✨ Create Sphera'}
           </Button>
         </ButtonGroup>
       </Form>
@@ -585,4 +585,5 @@ const CreateBoard: React.FC = () => {
   );
 };
 
-export default CreateBoard; 
+export default CreateBoard;
+ 
