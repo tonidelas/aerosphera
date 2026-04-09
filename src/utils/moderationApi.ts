@@ -200,7 +200,7 @@ export const removeMember = async (boardId: string, userId: string): Promise<voi
 export const getBannedMembers = async (boardId: string): Promise<BoardBan[]> => {
   const { data, error } = await supabase
     .from('board_bans')
-    .select('*, profiles (id, username, avatar_url)')
+    .select('*, profiles:profiles!board_bans_user_id_fkey (id, username, avatar_url)')
     .eq('board_id', boardId)
     .order('created_at', { ascending: false });
 
@@ -412,7 +412,7 @@ export const getReports = async (boardId: string): Promise<PostReport[]> => {
     .select(`
       *,
       reporter_profile:profiles!post_reports_reporter_user_id_fkey (id, username, avatar_url),
-      posts (content, user_id, profiles (username))
+      posts (content, user_id, profiles:profiles!posts_user_id_fkey_to_profiles (username))
     `)
     .eq('board_id', boardId)
     .order('created_at', { ascending: false });

@@ -176,7 +176,7 @@ export const getBoardPosts = async (boardId: string) => {
     .from('posts')
     .select(`
       *,
-      profiles (
+      profiles:profiles!posts_user_id_fkey_to_profiles (
         id,
         username,
         full_name,
