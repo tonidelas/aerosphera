@@ -657,46 +657,49 @@ const Post: React.FC<PostProps> = ({
             {edited && <span style={{ color: '#888', fontSize: 13 }}>(Edited)</span>}
           </div>
         </div>
-        {currentUserId && currentUserId === user_id && (
+        {currentUserId && (
           <div ref={menuRef} style={{ position: 'relative', marginLeft: 'auto' }}>
-            <MenuButton onClick={() => setMenuOpen(m => !m)} title="Post options">
-              <ThreeDots />
-            </MenuButton>
-            {menuOpen && (
-              <MenuDropdown>
-                <MenuItem onClick={handleEdit}>Edit</MenuItem>
-                <MenuItem onClick={handleDelete}>Delete</MenuItem>
-              </MenuDropdown>
-            )}
-          </div>
-        )}
-        {/* Mod menu (for mods/owners who don't own the post) */}
-        {isMod && currentUserId !== user_id && boardId && (
-          <div ref={menuRef} style={{ position: 'relative', marginLeft: 'auto' }}>
-            <MenuButton onClick={() => setMenuOpen(m => !m)} title="Mod options">
-              🛡️
-            </MenuButton>
-            {menuOpen && (
-              <MenuDropdown>
-                <MenuItem onClick={handlePinToggle}>{localIsPinned ? 'Unpin Post' : 'Pin Post'}</MenuItem>
-                <MenuItem onClick={() => { setMenuOpen(false); setShowModRemoveDialog(true); }} style={{ color: '#dc004e' }}>Remove Post</MenuItem>
-              </MenuDropdown>
-            )}
-          </div>
-        )}
-        {/* Mod pin/remove for own posts too */}
-        {isMod && currentUserId === user_id && boardId && (
-          <div ref={menuRef} style={{ position: 'relative', marginLeft: 'auto' }}>
-            <MenuButton onClick={() => setMenuOpen(m => !m)} title="Post options">
-              <ThreeDots />
-            </MenuButton>
-            {menuOpen && (
-              <MenuDropdown>
-                <MenuItem onClick={handleEdit}>Edit</MenuItem>
-                <MenuItem onClick={handlePinToggle}>{localIsPinned ? 'Unpin Post' : 'Pin Post'}</MenuItem>
-                <MenuItem onClick={handleDelete}>Delete</MenuItem>
-              </MenuDropdown>
-            )}
+            {/* Case 1: User is Owner AND Moderator (Show all options) */}
+            {isOwner && isMod && boardId ? (
+              <>
+                <MenuButton onClick={() => setMenuOpen(m => !m)} title="Post options">
+                  <ThreeDots />
+                </MenuButton>
+                {menuOpen && (
+                  <MenuDropdown>
+                    <MenuItem onClick={handleEdit}>Edit</MenuItem>
+                    <MenuItem onClick={handlePinToggle}>{localIsPinned ? 'Unpin Post' : 'Pin Post'}</MenuItem>
+                    <MenuItem onClick={handleDelete}>Delete</MenuItem>
+                  </MenuDropdown>
+                )}
+              </>
+            ) : isOwner ? (
+              /* Case 2: User is Owner but NOT Moderator */
+              <>
+                <MenuButton onClick={() => setMenuOpen(m => !m)} title="Post options">
+                  <ThreeDots />
+                </MenuButton>
+                {menuOpen && (
+                  <MenuDropdown>
+                    <MenuItem onClick={handleEdit}>Edit</MenuItem>
+                    <MenuItem onClick={handleDelete}>Delete</MenuItem>
+                  </MenuDropdown>
+                )}
+              </>
+            ) : isMod && boardId ? (
+              /* Case 3: User is Moderator but NOT Owner */
+              <>
+                <MenuButton onClick={() => setMenuOpen(m => !m)} title="Mod options">
+                  🛡️
+                </MenuButton>
+                {menuOpen && (
+                  <MenuDropdown>
+                    <MenuItem onClick={handlePinToggle}>{localIsPinned ? 'Unpin Post' : 'Pin Post'}</MenuItem>
+                    <MenuItem onClick={() => { setMenuOpen(false); setShowModRemoveDialog(true); }} style={{ color: '#dc004e' }}>Remove Post</MenuItem>
+                  </MenuDropdown>
+                )}
+              </>
+            ) : null}
           </div>
         )}
         {/* Report button for non-owners */}

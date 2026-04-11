@@ -884,14 +884,20 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, defaultBoardId }
               isError: true 
             });
           }
-        } catch (imageError) {
+        } catch (imageError: any) {
           console.error('Error uploading image:', imageError);
+          const errorMsg = imageError.message || 'Failed to upload image. Your post will be created without the image.';
           setStatusMessage({ 
-            message: 'Failed to upload image. Your post will be created without the image.', 
+            message: errorMsg, 
             isError: true 
           });
           // Continue with the post creation without the image
           imageUrlResult = null;
+          // If it's a specific size error, maybe don't continue or alert clearly?
+          // I'll keep the current behavior but with better message
+          if (errorMsg.includes('size')) {
+            alert(errorMsg);
+          }
         } finally {
           // Clear progress after a short delay
           setTimeout(() => setUploadProgress(null), 1000);
@@ -1043,19 +1049,28 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, defaultBoardId }
           <SearchContent>
             <SearchModalHeader>Add a song to your post</SearchModalHeader>
             <SearchContainer>
-              <SearchInput
-                type="text"
-                placeholder="Search music (artist or title)..."
-                value={musicSearchTerm}
-                onChange={(e) => setMusicSearchTerm(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && searchMusic(musicSearchTerm)}
-              />
-              <SearchButton
-                onClick={() => searchMusic(musicSearchTerm)}
-                disabled={isSearching}
+              <form 
+                onSubmit={(e) => { 
+                  e.preventDefault(); 
+                  searchMusic(musicSearchTerm); 
+                }} 
+                style={{ display: 'flex', gap: '10px', width: '100%' }}
               >
-                {isSearching ? '...' : 'Search'}
-              </SearchButton>
+                <div style={{ flex: 1 }}>
+                  <SearchInput
+                    type="text"
+                    placeholder="Search music (artist or title)..."
+                    value={musicSearchTerm}
+                    onChange={(e) => setMusicSearchTerm(e.target.value)}
+                  />
+                </div>
+                <SearchButton
+                  type="submit"
+                  disabled={isSearching}
+                >
+                  {isSearching ? '...' : 'Search'}
+                </SearchButton>
+              </form>
             </SearchContainer>
             <SearchResults>
               {renderSearchResults()}
