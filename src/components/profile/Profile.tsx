@@ -42,16 +42,27 @@ const BioTextarea = styled.textarea`
 const BioText = styled.p`
   cursor: pointer;
   margin-bottom: 16px;
-  padding: 8px;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.1);
-  transition: background 0.2s ease;
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
   gap: 8px;
+  line-height: 1.5;
   
   &:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.6);
+    transform: translateY(-1px);
+  }
+  
+  @media (max-width: 480px) {
+    justify-content: center;
+    text-align: center;
+    padding: 10px;
+    font-size: 0.95em;
   }
 `;
 
@@ -67,10 +78,15 @@ const UsernameWrapper = styled.div`
   margin-bottom: 10px;
   flex-wrap: wrap;
   
+  @media (max-width: 480px) {
+    justify-content: center;
+  }
+  
   h2 {
     margin: 0;
     color: #000;
     font-size: 1.8em;
+    font-weight: 700;
   }
 `;
 
@@ -85,14 +101,27 @@ const ProfilePhoto = styled.img`
   width: 150px;
   height: 150px;
   border-radius: 50%;
-  border: 4px solid var(--primary);
+  border: 6px solid #ffffff;
   object-fit: cover;
   background: white;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.15);
   transition: transform 0.3s ease;
+  z-index: 10;
+  
   &:hover { transform: scale(1.02); }
-  @media (max-width: 768px) { width: 120px; height: 120px; }
-  @media (max-width: 480px) { width: 100px; height: 100px; }
+  
+  @media (max-width: 768px) { 
+    width: 125px; 
+    height: 125px;
+    border-width: 5px;
+  }
+  
+  @media (max-width: 480px) { 
+    width: 110px; 
+    height: 110px;
+    border-width: 4px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  }
 `;
 
 const ProfilePhotoContainer = styled.div`
@@ -100,8 +129,20 @@ const ProfilePhotoContainer = styled.div`
   display: inline-block;
   margin-top: -75px;
   margin-left: 30px;
-  @media (max-width: 768px) { margin-top: -60px; margin-left: 20px; }
-  @media (max-width: 480px) { margin-top: -50px; margin-left: 15px; }
+  
+  @media (max-width: 768px) { 
+    margin-top: -65px; 
+    margin-left: 20px; 
+  }
+  
+  @media (max-width: 480px) { 
+    margin-top: -55px; 
+    margin-left: 0;
+    margin-bottom: 5px;
+    display: flex;
+    justify-content: center;
+    width: 100%;
+  }
 `;
 
 const ChangePhotoButton = styled.div`
@@ -217,13 +258,28 @@ const ProfileSectionContainer = styled.div`
   border-radius: 0 0 12px 12px;
   position: relative;
   z-index: 5;
+  transition: all 0.3s ease;
+  padding-bottom: 10px;
 `;
 
 const ProfileHeader = styled.div`
   display: flex;
   align-items: center;
-  padding: 20px;
-  gap: 30px;
+  padding: 20px 30px;
+  gap: 40px;
+  
+  @media (max-width: 768px) {
+    gap: 25px;
+    padding: 15px 20px;
+  }
+  
+  @media (max-width: 480px) {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 15px;
+    padding: 10px 15px;
+  }
 `;
 
 const ProfileDetails = styled.div`
@@ -234,6 +290,11 @@ const ProfileStats = styled.div`
   display: flex;
   gap: 20px;
   margin: 15px 0;
+  
+  @media (max-width: 480px) {
+    justify-content: center;
+    margin: 8px 0;
+  }
 `;
 
 const StatItem = styled.div`
@@ -245,14 +306,29 @@ const StatItem = styled.div`
 const StatNumber = styled.div` font-weight: bold; `;
 const StatLabel = styled.div` color: #666; font-size: 0.9em; `;
 
-const ProfileBio = styled.div` margin-bottom: 15px; `;
+const ProfileBio = styled.div` 
+  margin-bottom: 15px;
+  padding: 0 30px;
+  
+  @media (max-width: 480px) {
+    padding: 0 20px;
+  }
+`;
 
 const ProfileMusicContainer = styled.div`
   margin-top: 15px;
-  background: rgba(255, 255, 255, 0.8);
-  border-radius: 10px;
-  padding: 15px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  margin-bottom: 20px;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.05);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  
+  @media (max-width: 480px) {
+    margin: 15px 15px 20px 15px;
+    padding: 15px;
+  }
 `;
 
 const MusicPlayer = styled.div` display: flex; align-items: center; gap: 15px; `;

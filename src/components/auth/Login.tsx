@@ -68,6 +68,8 @@ const Login: React.FC = () => {
   });
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showResend, setShowResend] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -81,6 +83,8 @@ const Login: React.FC = () => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
+    setShowResend(false);
+    setIsLoading(true);
 
     try {
       console.log('Attempting to sign in with:', formData.email);
@@ -91,21 +95,43 @@ const Login: React.FC = () => {
 
       console.log('Sign in response:', { data, error });
 
-      if (error) throw error;
+      if (error) {
+        if (error.message.toLowerCase().includes('email not confirmed')) {
+          setShowResend(true);
+        }
+        throw error;
+      }
 
       if (data.user) {
         console.log('Login successful with user:', data.user);
         setSuccess('Login successful!');
-        
-        // Store user data in localStorage
         localStorage.setItem('user', JSON.stringify(data.user));
-        
-        // Redirect to profile page
         navigate('/profile');
       }
     } catch (error: any) {
       console.error('Login error:', error);
       setError(error.message || 'An error occurred during login');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    setError(null);
+    setSuccess(null);
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: formData.email,
+      });
+      if (error) throw error;
+      setSuccess('Verification email resent! Please check your inbox.');
+      setShowResend(false);
+    } catch (error: any) {
+      setError(error.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -131,6 +157,7 @@ const Login: React.FC = () => {
                 value={formData.email}
                 onChange={handleChange}
                 required
+                placeholder="you@example.com"
               />
             </FormGroup>
             <FormGroup>
@@ -141,11 +168,23 @@ const Login: React.FC = () => {
                 value={formData.password}
                 onChange={handleChange}
                 required
+                placeholder="••••••••"
               />
             </FormGroup>
             {error && <ErrorMessage>{error}</ErrorMessage>}
             {success && <SuccessMessage>{success}</SuccessMessage>}
-            <LoginButton type="submit">Login</LoginButton>
+            
+            {showResend && (
+              <div style={{ marginBottom: '15px', textAlign: 'center' }}>
+                <Link to="#" onClick={(e) => { e.preventDefault(); handleResend(); }} style={{ fontSize: '13px', color: 'var(--accent)' }}>
+                  Didn't get the email? Resend verification
+                </Link>
+              </div>
+            )}
+
+            <LoginButton type="submit" disabled={isLoading}>
+              {isLoading ? 'Logging in...' : 'Login'}
+            </LoginButton>
             <FormFooter>
               Don't have an account? <Link to="/register">Register</Link>
             </FormFooter>

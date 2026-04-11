@@ -68,7 +68,8 @@ const Register: React.FC = () => {
     confirmPassword: ''
   });
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const [isEmailSent, setIsEmailSent] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -81,13 +82,13 @@ const Register: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setSuccess(null);
 
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
       return;
     }
 
+    setIsLoading(true);
     try {
       console.log('Attempting to sign up with:', formData.email);
       const { data, error } = await supabase.auth.signUp({
@@ -106,38 +107,61 @@ const Register: React.FC = () => {
 
       if (data.user) {
         console.log('User created successfully:', data.user);
-        setSuccess('Registration successful! Please check your email to verify your account.');
         
-        // Store user data in localStorage
-        localStorage.setItem('user', JSON.stringify(data.user));
-        
-        // Ensure user has a session
+        // Check if email confirmation is required
+        // Supabase behavior: if confirmation is required, session is null
         if (data.session) {
-          console.log('Session created:', data.session);
+          // No confirmation required, log them in
+          localStorage.setItem('user', JSON.stringify(data.user));
+          navigate('/profile');
         } else {
-          console.log('No session created on signup - this is normal if email confirmation is required');
-          // If email confirmation isn't required, we can log in the user immediately
-          try {
-            const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-              email: formData.email,
-              password: formData.password,
-            });
-            
-            if (signInError) throw signInError;
-            console.log('Auto login after signup:', signInData);
-          } catch (signInError) {
-            console.error('Auto login error:', signInError);
-          }
+          // Confirmation required
+          setIsEmailSent(true);
         }
-        
-        // Redirect to profile page
-        navigate('/profile');
       }
     } catch (error: any) {
       console.error('Registration error:', error);
       setError(error.message || 'An error occurred during registration');
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  if (isEmailSent) {
+    return (
+      <RegisterWrapper>
+        <FormContainer style={{ width: '450px', maxWidth: '100%', textAlign: 'center' }}>
+          <WindowTitleBar>
+            <WindowButtons>
+              <WindowButton color="#FF5F57" />
+              <WindowButton color="#FFBD2E" />
+              <WindowButton color="#28C840" />
+            </WindowButtons>
+            <WindowTitle>Verification Required</WindowTitle>
+          </WindowTitleBar>
+          <WindowContent style={{ padding: '40px 30px' }}>
+            <div style={{ fontSize: '64px', marginBottom: '20px' }}>✉️</div>
+            <FormTitle style={{ fontSize: '24px', marginBottom: '16px' }}>Check your email</FormTitle>
+            <p style={{ color: '#555', lineHeight: '1.6', marginBottom: '24px' }}>
+              We've sent a verification link to <strong>{formData.email}</strong>.<br />
+              Please click the link in the email to activate your account.
+            </p>
+            <div style={{ background: 'rgba(13, 158, 255, 0.05)', padding: '18px', borderRadius: '12px', border: '1px solid rgba(13, 158, 255, 0.1)', marginBottom: '30px', textAlign: 'left', fontSize: '14.5px' }}>
+              <strong style={{ color: 'var(--accent)', display: 'block', marginBottom: '8px' }}>Important Instructions:</strong>
+              <ul style={{ margin: '0', paddingLeft: '20px', color: '#444' }}>
+                <li style={{ marginBottom: '8px' }}>The email will come from <strong>Supabase Auth</strong>.</li>
+                <li style={{ marginBottom: '8px' }}>Once you click the link, it may open a blank page—this is normal!</li>
+                <li>Your account is then <strong>confirmed</strong>, and you can return here to <strong>retry your login</strong>.</li>
+              </ul>
+            </div>
+            <AquaButton onClick={() => navigate('/login')} style={{ width: '100%' }}>
+              Back to Login
+            </AquaButton>
+          </WindowContent>
+        </FormContainer>
+      </RegisterWrapper>
+    );
+  }
 
   return (
     <RegisterWrapper>
@@ -161,6 +185,7 @@ const Register: React.FC = () => {
                 value={formData.email}
                 onChange={handleChange}
                 required
+                placeholder="you@example.com"
               />
             </FormGroup>
             <FormGroup>
@@ -171,6 +196,7 @@ const Register: React.FC = () => {
                 value={formData.password}
                 onChange={handleChange}
                 required
+                placeholder="••••••••"
               />
             </FormGroup>
             <FormGroup>
@@ -181,11 +207,13 @@ const Register: React.FC = () => {
                 value={formData.confirmPassword}
                 onChange={handleChange}
                 required
+                placeholder="••••••••"
               />
             </FormGroup>
             {error && <ErrorMessage>{error}</ErrorMessage>}
-            {success && <SuccessMessage>{success}</SuccessMessage>}
-            <RegisterButton type="submit">Register</RegisterButton>
+            <RegisterButton type="submit" disabled={isLoading}>
+              {isLoading ? 'Creating Account...' : 'Register'}
+            </RegisterButton>
             <FormFooter>
               Already have an account? <Link to="/login">Login</Link>
             </FormFooter>
