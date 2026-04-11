@@ -197,11 +197,33 @@ export const getBoardPosts = async (boardId: string) => {
 
 // Get board member count
 export const getBoardMemberCount = async (boardId: string): Promise<number> => {
-  const { count, error } = await supabase
+  // 1. Get total number of subscribers
+  const { count: subCount, error: subError } = await supabase
     .from('board_subscriptions')
     .select('*', { count: 'exact', head: true })
     .eq('board_id', boardId);
 
-  if (error) throw error;
-  return count || 0;
+  if (subError) throw subError;
+
+  // 2. Fetch the board creator (owner)
+  const { data: board, error: boardError } = await supabase
+    .from('boards')
+    .select('creator_user_id')
+    .eq('id', boardId)
+    .maybeSingle();
+
+  if (boardError || !board || !board.creator_user_id) return subCount || 0;
+
+  // 3. Check if the owner is already among the subscribers
+  const { data: sub, error: checkError } = await supabase
+    .from('board_subscriptions')
+    .select('user_id')
+    .eq('board_id', boardId)
+    .eq('user_id', board.creator_user_id)
+    .maybeSingle();
+
+  if (checkError) return subCount || 0;
+
+  // If the owner is not in the subscriptions table, add 1 to the count
+  return (subCount || 0) + (sub ? 0 : 1);
 }; 

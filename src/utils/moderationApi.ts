@@ -107,7 +107,10 @@ export const getModLog = async (boardId: string): Promise<ModLogEntry[]> => {
     .order('created_at', { ascending: false })
     .limit(100);
 
-  if (error) throw error;
+  if (error) {
+    console.error('Error fetching mod log:', error);
+    throw error;
+  }
   return data || [];
 };
 
@@ -116,10 +119,13 @@ export const getModLog = async (boardId: string): Promise<ModLogEntry[]> => {
 export const getModerators = async (boardId: string): Promise<BoardRole[]> => {
   const { data, error } = await supabase
     .from('board_roles')
-    .select('*, profiles (id, username, avatar_url)')
+    .select('*, profiles:profiles!board_roles_user_id_fkey (id, username, avatar_url)')
     .eq('board_id', boardId);
 
-  if (error) throw error;
+  if (error) {
+    console.error('Error fetching moderators:', error);
+    throw error;
+  }
   return data || [];
 };
 
@@ -152,36 +158,94 @@ export const removeModerator = async (boardId: string, userId: string): Promise<
 // ─── Members ───────────────────────────────────────────────────────────────────
 
 export const getMembers = async (boardId: string): Promise<BoardMember[]> => {
+  // 1. Fetch Board for owner info
   const { data: board } = await supabase
     .from('boards')
     .select('creator_user_id')
     .eq('id', boardId)
     .single();
 
-  const { data: mods } = await supabase
+  // 2. Fetch Board Roles (moderators)
+  const { data: mods, error: modsError } = await supabase
     .from('board_roles')
-    .select('user_id')
+    .select('user_id, profiles:profiles!board_roles_user_id_fkey (id, username, avatar_url)')
     .eq('board_id', boardId);
 
-  const modIds = new Set((mods || []).map((m: any) => m.user_id));
+  if (modsError) {
+    console.error('Error fetching moderators for member list:', modsError);
+  }
 
-  const { data, error } = await supabase
+  // 3. Fetch Subscriptions (regular members)
+  const { data: subscribers, error: subError } = await supabase
     .from('board_subscriptions')
-    .select('user_id, board_id, created_at, profiles (id, username, avatar_url)')
+    .select('user_id, board_id, created_at, profiles:profiles!board_subscriptions_user_id_fkey (id, username, avatar_url)')
     .eq('board_id', boardId)
     .order('created_at', { ascending: true });
 
-  if (error) throw error;
+  if (subError) throw subError;
 
-  return (data || []).map((sub: any) => ({
-    ...sub,
-    role:
-      sub.user_id === board?.creator_user_id
+  // 4. Merge all unique users into a single map to calculate roles
+  const membersMap = new Map<string, BoardMember>();
+
+  // Use a set of moderator user IDs for quick lookup
+  const moderatorIds = new Set((mods || []).map((m: any) => m.user_id));
+
+  // Add all subscribers first
+  (subscribers || []).forEach((sub: any) => {
+    membersMap.set(sub.user_id, {
+      user_id: sub.user_id,
+      board_id: sub.board_id,
+      created_at: sub.created_at,
+      profiles: sub.profiles,
+      role: sub.user_id === board?.creator_user_id
         ? 'owner'
-        : modIds.has(sub.user_id)
+        : moderatorIds.has(sub.user_id)
         ? 'moderator'
         : 'member',
-  }));
+    });
+  });
+
+  // Ensure owner is present even if they unsubscribed
+  if (board?.creator_user_id && !membersMap.has(board.creator_user_id)) {
+    const { data: ownerProfile } = await supabase
+      .from('profiles')
+      .select('id, username, avatar_url')
+      .eq('id', board.creator_user_id)
+      .maybeSingle();
+
+    if (ownerProfile) {
+      membersMap.set(board.creator_user_id, {
+        user_id: board.creator_user_id,
+        board_id: boardId,
+        created_at: new Date().toISOString(), // Fallback
+        profiles: ownerProfile,
+        role: 'owner',
+      });
+    }
+  }
+
+  // Ensure all moderators are present even if they haven't subscribed
+  (mods || []).forEach((mod: any) => {
+    if (!membersMap.has(mod.user_id)) {
+      membersMap.set(mod.user_id, {
+        user_id: mod.user_id,
+        board_id: boardId,
+        created_at: new Date().toISOString(), // Fallback
+        profiles: mod.profiles,
+        role: 'moderator',
+      });
+    }
+  });
+
+  // Convert map to array and sort by role priority and username
+  const membersList = Array.from(membersMap.values());
+  const roleOrder: Record<string, number> = { owner: 0, moderator: 1, member: 2, banned: 3 };
+
+  return membersList.sort((a, b) => {
+    const roleDiff = (roleOrder[a.role] ?? 99) - (roleOrder[b.role] ?? 99);
+    if (roleDiff !== 0) return roleDiff;
+    return (a.profiles?.username || '').localeCompare(b.profiles?.username || '');
+  });
 };
 
 export const removeMember = async (boardId: string, userId: string): Promise<void> => {

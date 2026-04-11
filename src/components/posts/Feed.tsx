@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import { supabase } from '../../utils/supabaseClient';
 import Post from './Post';
 import CreatePost from './CreatePost';
-import { DeezerTrack } from '../../utils/deezerClient';
+import { DeezerTrack } from '../../utils/musicClient';
 import { Session } from '@supabase/supabase-js';
 import { useSuppressYouTubeErrors } from '../../utils/errorHandling';
 import { useNavigate } from 'react-router-dom';

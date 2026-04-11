@@ -5,7 +5,7 @@ import { supabase } from '../../utils/supabaseClient';
 import { Heart, HeartFill, ThreeDots } from 'react-bootstrap-icons';
 import { AquaButton } from '../common/StyledComponents';
 import SimpleEditor, { SimpleEditorHandle } from '../common/SimpleEditor';
-import { DeezerTrack, searchDeezerTracks } from '../../utils/deezerClient';
+import { DeezerTrack, searchDeezerTracks } from '../../utils/musicClient';
 import { getYoutubeVideoId, extractYoutubeUrl, formatYoutubeLinks } from '../../utils/youtubeUtils';
 import { useSuppressYouTubeErrors } from '../../utils/errorHandling';
 import { isValidImageUrl, handleImageError } from '../../utils/imageUtils';
@@ -360,6 +360,7 @@ const Post: React.FC<PostProps> = ({
   const editorRef = React.useRef<any>(null);
   const menuRef = React.useRef<HTMLDivElement>(null);
   const [localTrackInfo, setLocalTrackInfo] = React.useState(music_track_info);
+  const [hasTriedRefresh, setHasTriedRefresh] = React.useState(false);
   const postAudioRef = React.useRef<HTMLAudioElement>(null);
   const [isPostPlaying, setIsPostPlaying] = React.useState(false);
   const [isLikedState, setIsLikedState] = React.useState(is_liked);
@@ -404,21 +405,26 @@ const Post: React.FC<PostProps> = ({
   }, [menuOpen]);
 
   React.useEffect(() => {
-    if (localTrackInfo && !localTrackInfo.preview) {
+    if (localTrackInfo && !localTrackInfo.preview && !hasTriedRefresh) {
       const refresh = async () => {
+        setHasTriedRefresh(true);
         const query = `${localTrackInfo.title} ${localTrackInfo.artist.name}`;
-        const results = await searchDeezerTracks(query);
-        if (results.length > 0) {
-          const match = results.find(track =>
-            track.title.toLowerCase() === localTrackInfo.title.toLowerCase() &&
-            track.artist.name.toLowerCase() === localTrackInfo.artist.name.toLowerCase()
-          ) || results[0];
-          setLocalTrackInfo(match);
+        try {
+          const results = await searchDeezerTracks(query);
+          if (results.length > 0) {
+            const match = results.find(track =>
+              track.title.toLowerCase() === localTrackInfo.title.toLowerCase() &&
+              track.artist.name.toLowerCase() === localTrackInfo.artist.name.toLowerCase()
+            ) || results[0];
+            setLocalTrackInfo(match);
+          }
+        } catch (error) {
+          console.error('Error refreshing track info:', error);
         }
       };
       refresh();
     }
-  }, [localTrackInfo]);
+  }, [localTrackInfo, hasTriedRefresh]);
 
   React.useEffect(() => {
     const handleGlobalAudioPlay = (event: Event) => {

@@ -26,7 +26,7 @@ import {
   GlassInput
 } from '../common/StyledComponents';
 import SimpleEditor, { SimpleEditorHandle } from '../common/SimpleEditor';
-import { searchDeezerTracks, DeezerTrack } from '../../utils/deezerClient';
+import { searchDeezerTracks, DeezerTrack } from '../../utils/musicClient';
 import Post from '../posts/Post'; // Import the Post component from posts directory
 
 const BioTextarea = styled.textarea`
@@ -757,16 +757,12 @@ const Profile: React.FC = () => {
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const { userId } = useParams<{ userId?: string }>();
-  const [showSpotifySearch, setShowSpotifySearch] = useState(false);
+  const [showProfileMusicSearch, setShowProfileMusicSearch] = useState(false);
+  const [showPostMusicSearch, setShowPostMusicSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<DeezerTrack[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [playbackProgress, setPlaybackProgress] = useState(0);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const progressInterval = useRef<NodeJS.Timeout | null>(null);
   const [selectedTrack, setSelectedTrack] = useState<DeezerTrack | null>(null);
-  const [showSongSearch, setShowSongSearch] = useState(false);
   const [currentlyPlayingPostId, setCurrentlyPlayingPostId] = useState<string | null>(null); // State for playing post
   const [isProfileSongPlaying, setIsProfileSongPlaying] = useState(false); // State for profile song playback
   const [showMenuForPost, setShowMenuForPost] = useState<string | null>(null); // State for post menu visibility
@@ -1300,7 +1296,7 @@ const Profile: React.FC = () => {
         music_track_id: track.id,
         music_track_info: track
       } : null);
-      setShowSpotifySearch(false);
+      setShowProfileMusicSearch(false);
     } catch (error) {
       console.error('Error saving track to profile:', error);
     }
@@ -1679,7 +1675,7 @@ const Profile: React.FC = () => {
                   <div style={{ textAlign: 'center' }}>
                     <p>No song selected for profile</p>
                     {isCurrentUser && isEditMode && (
-                      <AddSongButton onClick={() => setShowSpotifySearch(true)}>
+                      <AddSongButton onClick={() => setShowProfileMusicSearch(true)}>
                         Add a song to your profile
                       </AddSongButton>
                     )}
@@ -1737,22 +1733,22 @@ const Profile: React.FC = () => {
           </TabsHeader>
 
           {/* Song Search Modal for Posts - Moved to top level */}
-          {showSongSearch && ReactDOM.createPortal((
+          {showPostMusicSearch && ReactDOM.createPortal((
             <SearchModal>
               <SearchContent>
                 <h3>Add a song to your post</h3>
                 <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-                  <SearchInput type="text" placeholder="Search Deezer (artist or title)..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && searchMusic(searchQuery)} />
+                  <SearchInput type="text" placeholder="Search music (artist or title)..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && searchMusic(searchQuery)} />
                   <AquaButton onClick={() => searchMusic(searchQuery)} disabled={isSearching} style={{ minWidth: '80px' }}>{isSearching ? '...' : 'Search'}</AquaButton>
                 </div>
                 <SearchResults>{renderSearchResults((track) => { 
                   setSelectedTrack(track); 
-                  setShowSongSearch(false); 
+                  setShowPostMusicSearch(false); 
                   setSearchQuery(''); 
                   setSearchResults([]); 
                 })}</SearchResults>
                 <div style={{ textAlign: 'right', marginTop: '20px' }}>
-                  <AquaButton onClick={() => { setShowSongSearch(false); setSearchQuery(''); setSearchResults([]); }} style={{ background: '#eee', color: '#333' }}>Cancel</AquaButton>
+                  <AquaButton onClick={() => { setShowPostMusicSearch(false); setSearchQuery(''); setSearchResults([]); }} style={{ background: '#eee', color: '#333' }}>Cancel</AquaButton>
                 </div>
               </SearchContent>
             </SearchModal>
@@ -1785,7 +1781,7 @@ const Profile: React.FC = () => {
                           ))}
                         </BackgroundOptions>
                       </div>
-                      <AquaButton type="button" onClick={() => setShowSongSearch(true)} disabled={!!selectedTrack} style={{ padding: '6px 12px', fontSize: '0.9em', height: 'auto', marginTop: '10px' }}>
+                      <AquaButton type="button" onClick={() => setShowPostMusicSearch(true)} disabled={!!selectedTrack} style={{ padding: '6px 12px', fontSize: '0.9em', height: 'auto', marginTop: '10px' }}>
                         {selectedTrack ? 'Song Added' : 'Add Song Snippet'}
                       </AquaButton>
                       <AquaButton onClick={handleAddPost} style={{ minWidth: '140px' }}>Add Post-it Note</AquaButton>
@@ -1844,14 +1840,14 @@ const Profile: React.FC = () => {
           </TabContainer>
           
           {/* Song Search Modal */}
-          {showSpotifySearch && ReactDOM.createPortal((
+          {showProfileMusicSearch && ReactDOM.createPortal((
             <SearchModal>
               <SearchContent>
                 <h3>Add a song to your profile</h3>
                 <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
                   <SearchInput
                     type="text"
-                    placeholder="Search for a song (artist or title)..."
+                    placeholder="Search music (artist or title)..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && searchMusic(searchQuery)}
@@ -1869,7 +1865,7 @@ const Profile: React.FC = () => {
                 </SearchResults>
                 <div style={{ textAlign: 'right', marginTop: '20px' }}>
                   <AquaButton
-                    onClick={() => setShowSpotifySearch(false)}
+                    onClick={() => setShowProfileMusicSearch(false)}
                     style={{ background: '#eee', color: '#333' }}
                   >
                     Cancel

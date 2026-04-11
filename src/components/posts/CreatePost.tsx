@@ -5,7 +5,7 @@ import { supabase } from '../../utils/supabaseClient';
 import { uploadImage } from '../../utils/cloudinaryUtils';
 import SimpleEditor, { SimpleEditorHandle } from '../common/SimpleEditor';
 // Import Deezer related utilities and types
-import { searchDeezerTracks, DeezerTrack } from '../../utils/deezerClient';
+import { searchDeezerTracks, DeezerTrack } from '../../utils/musicClient';
 // Import common styled components (assuming they exist and are styled similarly to Profile.tsx)
 import {
   AquaButton,
@@ -696,16 +696,13 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, defaultBoardId }
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const editorRef = useRef<SimpleEditorHandle>(null);
   const [selectedTrack, setSelectedTrack] = useState<DeezerTrack | null>(null);
-  const [showSongSearch, setShowSongSearch] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<DeezerTrack[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [boards, setBoards] = useState<Board[]>([]);
   const [selectedBoardId, setSelectedBoardId] = useState<string>('');
   const [searchParams, setSearchParams] = useSearchParams();
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
-  // Deezer search state
+  // Music search state
   const [showMusicSearch, setShowMusicSearch] = useState(false);
   const [musicSearchTerm, setMusicSearchTerm] = useState('');
   const [musicSearchResults, setMusicSearchResults] = useState<DeezerTrack[]>([]);
@@ -763,7 +760,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, defaultBoardId }
 
   const searchMusic = async (query: string) => {
     if (!query.trim()) {
-      setSearchResults([]);
+      setMusicSearchResults([]);
       return;
     }
     setIsSearching(true);
@@ -781,9 +778,9 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, defaultBoardId }
 
   const handleSelectTrack = (track: DeezerTrack) => {
     setSelectedTrack(track);
-    setShowSongSearch(false);
-    setSearchQuery('');
-    setSearchResults([]);
+    setShowMusicSearch(false);
+    setMusicSearchTerm('');
+    setMusicSearchResults([]);
   };
 
   const renderSearchResults = () => {
@@ -1048,7 +1045,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, defaultBoardId }
             <SearchContainer>
               <SearchInput
                 type="text"
-                placeholder="Search Deezer (artist or title)..."
+                placeholder="Search music (artist or title)..."
                 value={musicSearchTerm}
                 onChange={(e) => setMusicSearchTerm(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && searchMusic(musicSearchTerm)}
