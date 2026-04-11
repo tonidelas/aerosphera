@@ -384,16 +384,77 @@ const Profile = () => {
         if (!authUser) { navigate('/login'); return; }
         const profileId = userId || authUser.id;
         setIsCurrentUser(!userId || userId === authUser.id);
+        
         const { data: profileData, error: profileError } = await supabase.from('profiles').select('*').eq('id', profileId).single();
         if (profileError) { navigate('/search'); return; }
         setUser(profileData);
         setNewBio(profileData?.bio || '');
         setNewUsername(profileData?.username || '');
-        const { data: postsData } = await supabase.from('posts').select('*').eq('user_id', profileId).order('created_at', { ascending: false });
-        setPosts(postsData || []);
-      } catch (error) { console.error(error); } finally { setIsLoading(false); }
+
+        const { data: postsData, error: postsError } = await supabase.from('posts').select('*').eq('user_id', profileId).order('created_at', { ascending: false });
+        if (postsError) throw postsError;
+        
+        const fetchedPosts = postsData || [];
+        
+        // Fetch like status and counts
+        const postIds = fetchedPosts.map(p => p.id);
+        const likesMap = new Map<string, number>();
+        const userLikesSet = new Set<string>();
+
+        if (postIds.length > 0) {
+          // 1. Get total like counts
+          const { data: countsData } = await supabase.rpc('get_like_counts', { post_ids: postIds });
+          if (countsData) {
+            countsData.forEach((item: any) => likesMap.set(item.post_id, item.like_count));
+          } else {
+            // Manual fallback if RPC fails
+            const { data: allLikes } = await supabase.from('likes').select('post_id').in('post_id', postIds);
+            allLikes?.forEach(l => likesMap.set(l.post_id, (likesMap.get(l.post_id) || 0) + 1));
+          }
+
+          // 2. Check if current user liked these posts
+          if (authUser) {
+            const { data: userLikes } = await supabase.from('likes').select('post_id').eq('user_id', authUser.id).in('post_id', postIds);
+            userLikes?.forEach(l => userLikesSet.add(l.post_id));
+          }
+        }
+
+        const formattedPosts = fetchedPosts.map(p => ({
+          ...p,
+          likes_count: likesMap.get(p.id) || 0,
+          is_liked: userLikesSet.has(p.id)
+        }));
+
+        setPosts(formattedPosts);
+        
+        // Update postLikes map for UI
+        const newLikesMap: {[key: string]: boolean} = {};
+        formattedPosts.forEach(p => {
+          if (p.is_liked) newLikesMap[p.id] = true;
+        });
+        setPostLikes(newLikesMap);
+
+      } catch (error) { 
+        console.error('Error fetching profile data:', error); 
+      } finally { 
+        setIsLoading(false); 
+      }
     };
     fetchUserData();
+
+    // Set up real-time subscriptions
+    const postsChannel = supabase.channel('profile_posts_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, fetchUserData)
+      .subscribe();
+      
+    const likesChannel = supabase.channel('profile_likes_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'likes' }, fetchUserData)
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(postsChannel);
+      supabase.removeChannel(likesChannel);
+    };
   }, [navigate, userId]);
 
   const handleLogout = async () => {
@@ -682,6 +743,35 @@ const Profile = () => {
                   ))}
                 </Grid>
               </div>
+            )}
+            {activeTab === 'about' && (
+              <GlassPanel>
+                <div style={{ padding: '10px' }}>
+                  <h3 style={{ marginBottom: '15px', color: 'var(--primary)', borderBottom: '1px solid var(--highlight)', paddingBottom: '10px' }}>
+                    User Information
+                  </h3>
+                  <div style={{ display: 'grid', gap: '15px' }}>
+                    <div>
+                      <strong style={{ color: '#666', fontSize: '0.9em' }}>Username</strong>
+                      <p style={{ margin: '5px 0', fontSize: '1.2em', fontWeight: 'bold' }}>@{user.username}</p>
+                    </div>
+                    <div>
+                      <strong style={{ color: '#666', fontSize: '0.9em' }}>About Me</strong>
+                      <p style={{ margin: '5px 0', lineHeight: '1.6' }}>{user.bio || 'This user is mysterious and hasn\'t shared a bio yet.'}</p>
+                    </div>
+                    <div style={{ display: 'flex', gap: '40px', marginTop: '10px' }}>
+                      <div>
+                        <strong style={{ color: '#666', fontSize: '0.9em' }}>Member Since</strong>
+                        <p style={{ margin: '5px 0', fontWeight: '500' }}>{new Date(user.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                      </div>
+                      <div>
+                        <strong style={{ color: '#666', fontSize: '0.9em' }}>Total Posts</strong>
+                        <p style={{ margin: '5px 0', fontWeight: '500' }}>{posts.length}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </GlassPanel>
             )}
           </TabContainer>
 

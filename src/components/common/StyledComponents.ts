@@ -498,6 +498,7 @@ export const ProfileInfo = styled.div`
 
 export const TabContainer = styled.div`
   width: 100%;
+  min-height: 400px;
 `;
 
 export const TabsHeader = styled.div`
