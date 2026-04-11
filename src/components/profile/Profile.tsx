@@ -30,13 +30,25 @@ import Post from '../posts/Post'; // Import the Post component from posts direct
 
 const BioTextarea = styled.textarea`
   width: 100%;
-  padding: 8px;
-  border-radius: 4px;
-  border: 1px solid var(--highlight);
-  background: rgba(255, 255, 255, 0.8);
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(13, 158, 255, 0.2);
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(10px);
   margin-bottom: 8px;
   font-family: inherit;
   resize: vertical;
+  font-size: 1.1em;
+  color: #333;
+  box-shadow: inset 0 2px 10px rgba(0,0,0,0.05);
+  transition: all 0.3s ease;
+  
+  &:focus {
+    background: rgba(255, 255, 255, 0.8);
+    border-color: #0D9EFF;
+    box-shadow: 0 0 15px rgba(13, 158, 255, 0.2);
+    outline: none;
+  }
 `;
 
 const BioText = styled.p`
@@ -91,57 +103,114 @@ const UsernameWrapper = styled.div`
 `;
 
 const UsernameInput = styled(GlassInput)`
-  font-size: 1.5em;
-  font-weight: bold;
-  width: auto;
-  min-width: 150px;
+  font-size: 1.8em;
+  font-weight: 800;
+  width: 100%;
+  max-width: 350px;
+  text-align: inherit;
+  background: rgba(255, 255, 255, 0.5);
+  border: 2px solid rgba(13, 158, 255, 0.1);
+  border-radius: 12px;
+  padding: 8px 16px;
+  color: #1a1a1a;
+  
+  &:focus {
+    background: rgba(255, 255, 255, 0.8);
+    border-color: #0D9EFF;
+    box-shadow: 0 0 15px rgba(13, 158, 255, 0.2);
+  }
 `;
 
 const ProfilePhoto = styled.img`
-  width: 150px;
-  height: 150px;
-  border-radius: 50%;
-  border: 6px solid #ffffff;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
   background: white;
-  box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-  transition: transform 0.3s ease;
-  z-index: 10;
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   
-  &:hover { transform: scale(1.02); }
-  
-  @media (max-width: 768px) { 
-    width: 125px; 
-    height: 125px;
-    border-width: 5px;
-  }
-  
-  @media (max-width: 480px) { 
-    width: 110px; 
-    height: 110px;
-    border-width: 4px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-  }
+  &:hover { transform: scale(1.1); }
 `;
 
 const ProfilePhotoContainer = styled.div`
   position: relative;
-  display: inline-block;
-  margin-top: -75px;
-  margin-left: 30px;
+  width: 160px;
+  height: 160px;
+  margin-top: -85px;
+  margin-left: 40px;
+  border-radius: 50%;
+  border: 8px solid #ffffff;
+  box-shadow: 0 15px 45px rgba(0,0,0,0.25);
+  z-index: 100; /* Ensure it stays above EVERYTHING, including banner overlays */
+  background: white;
+  overflow: hidden;
   
   @media (max-width: 768px) { 
-    margin-top: -65px; 
-    margin-left: 20px; 
+    width: 140px; 
+    height: 140px;
+    margin-top: -70px; 
+    margin-left: 30px; 
   }
   
   @media (max-width: 480px) { 
-    margin-top: -55px; 
-    margin-left: 0;
-    margin-bottom: 5px;
-    display: flex;
-    justify-content: center;
-    width: 100%;
+    width: 130px; 
+    height: 130px;
+    margin-top: -65px; 
+    margin-left: auto;
+    margin-right: auto;
+    margin-bottom: 15px;
+  }
+`;
+
+const ImageEditOverlay = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(13, 158, 255, 0.4);
+  backdrop-filter: blur(8px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 50%; /* Force circularity */
+  z-index: 15;
+  
+  &:hover {
+    opacity: 1;
+  }
+  
+  span {
+    font-size: 28px;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+  }
+`;
+
+const SimpleImageEditButton = styled.div`
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  color: #1D6BA7;
+  padding: 10px 24px;
+  border-radius: 30px;
+  font-weight: 700;
+  font-size: 14px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2), inset 0 1px 0 #fff;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  
+  &:hover {
+    transform: scale(1.05);
+    background: white;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.3);
   }
 `;
 
@@ -232,53 +301,68 @@ const BackgroundOption = styled.div<{ $bg: string; $selected: boolean }>`
 const BannerContainer = styled.div<{ $bg: string }>`
   position: relative;
   width: 100%;
-  height: 180px;
+  height: 250px;
   background: ${props => props.$bg};
-  border-radius: 12px 12px 0 0;
+  border-radius: 30px 30px 0 0;
   overflow: hidden;
+  box-shadow: inset 0 -60px 100px rgba(0,0,0,0.1);
+  z-index: 1; /* Lower than PFP */
+  
+  @media (max-width: 768px) { height: 200px; }
 `;
 
 const BannerImage = styled.img`
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: filter 0.5s ease;
 `;
 
 const BannerActions = styled.div`
   position: absolute;
-  bottom: 10px;
-  right: 20px;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   display: flex;
-  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(2px);
   z-index: 10;
 `;
 
 const ProfileSectionContainer = styled.div`
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 0 0 12px 12px;
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(25px);
+  border-radius: 0 0 30px 30px;
   position: relative;
   z-index: 5;
-  transition: all 0.3s ease;
-  padding-bottom: 10px;
+  transition: all 0.4s ease;
+  padding-bottom: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  margin-top: -1px;
+  width: 100%;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.05);
 `;
 
 const ProfileHeader = styled.div`
   display: flex;
   align-items: center;
-  padding: 20px 30px;
-  gap: 40px;
+  padding: 30px 40px;
+  gap: 50px;
   
   @media (max-width: 768px) {
-    gap: 25px;
-    padding: 15px 20px;
+    gap: 30px;
+    padding: 20px 30px;
   }
   
   @media (max-width: 480px) {
     flex-direction: column;
     align-items: center;
     text-align: center;
-    gap: 15px;
-    padding: 10px 15px;
+    gap: 20px;
+    padding: 15px;
   }
 `;
 
@@ -307,8 +391,8 @@ const StatNumber = styled.div` font-weight: bold; `;
 const StatLabel = styled.div` color: #666; font-size: 0.9em; `;
 
 const ProfileBio = styled.div` 
-  margin-bottom: 15px;
-  padding: 0 30px;
+  margin-bottom: 20px;
+  padding: 0 40px;
   
   @media (max-width: 480px) {
     padding: 0 20px;
@@ -346,14 +430,69 @@ const PlayerButton = styled.button`
 
 
 const LogoutButton = styled.button`
-  position: absolute; top: 18px; right: 24px; background: white; border: none;
+  position: absolute; top: 18px; right: 24px; background: rgba(255, 255, 255, 0.7); border: 1px solid rgba(0, 0, 0, 0.05);
   border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center;
-  justify-content: center; cursor: pointer; z-index: 20; color: var(--primary);
+  justify-content: center; cursor: pointer; z-index: 20; color: #ff5f57;
+  backdrop-filter: blur(5px);
+  transition: all 0.2s ease;
+  &:hover { background: white; transform: scale(1.1); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+`;
+
+const EditToggleContainer = styled.div`
+  position: absolute;
+  top: 18px;
+  right: 72px;
+  z-index: 20;
+  display: flex;
+  gap: 10px;
+`;
+
+const MinimalEditButton = styled.button<{ $active?: boolean }>`
+  background: ${props => props.$active ? '#0D9EFF' : 'rgba(255, 255, 255, 0.8)'};
+  color: ${props => props.$active ? 'white' : '#555'};
+  border: 1px solid ${props => props.$active ? '#0D9EFF' : 'rgba(0, 0, 0, 0.05)'};
+  border-radius: 18px;
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    background: ${props => props.$active ? '#1da1f2' : 'white'};
+  }
 `;
 
 const IconButton = styled.button`
   background: none; border: none; color: var(--primary); cursor: pointer;
   padding: 4px; display: flex; align-items: center; justify-content: center;
+`;
+
+const StyledWindowContainer = styled(WindowContainer)`
+  max-width: 900px !important;
+  width: 100% !important;
+  padding: 0 20px !important;
+  margin-top: 40px !important;
+  margin-bottom: 40px !important;
+
+  @media (max-width: 768px) {
+    padding: 0 10px !important;
+    margin-top: 20px !important;
+    margin-bottom: 20px !important;
+  }
+`;
+
+const StyledWindowFrame = styled(WindowFrame)`
+  box-shadow: 0 30px 80px rgba(0,0,0,0.25) !important;
+  border: 1px solid rgba(255,255,255,0.4) !important;
+  width: 100% !important;
 `;
 
 const EditPencil = () => <span>✎</span>;
@@ -688,30 +827,35 @@ const Profile = () => {
   if (!user) return null;
 
   return (
-    <WindowContainer>
-      <WindowFrame>
+    <StyledWindowContainer>
+      <StyledWindowFrame>
         <WindowTitleBar>
           <WindowButtons><WindowButton color="#FF5F57" /><WindowButton color="#FFBD2E" /><WindowButton color="#28C840" /></WindowButtons>
           <WindowTitle>Profile</WindowTitle>
         </WindowTitleBar>
-        <WindowContent style={{ position: 'relative' }}>
+        <WindowContent style={{ position: 'relative', background: '#fff' }}>
           {isCurrentUser && (
             <>
-              <LogoutButton onClick={() => setShowLogoutConfirm(true)}>⏻</LogoutButton>
-              <div style={{ position: 'absolute', top: '18px', right: '72px', zIndex: 20 }}>
-                <AquaButton onClick={() => setIsEditMode(!isEditMode)} style={{ background: isEditMode ? 'var(--accent)' : 'white', color: isEditMode ? 'white' : 'var(--primary)' }}>
-                  {isEditMode ? 'View Mode' : 'Edit Profile'}
-                </AquaButton>
-              </div>
+              <LogoutButton onClick={() => setShowLogoutConfirm(true)} title="Logout">⏻</LogoutButton>
+              <EditToggleContainer>
+                <MinimalEditButton 
+                  $active={isEditMode} 
+                  onClick={() => setIsEditMode(!isEditMode)}
+                >
+                  {isEditMode ? <><span>✓</span> Done</> : <><span>✎</span> Edit Profile</>}
+                </MinimalEditButton>
+              </EditToggleContainer>
             </>
           )}
 
           <BannerContainer $bg={user.banner_url ? 'transparent' : getPastelColorFromId(user.id)}>
             {user.banner_url && <BannerImage src={user.banner_url} />}
             {isCurrentUser && isEditMode && (
-              <BannerActions>
+              <BannerActions onClick={() => bannerInputRef.current?.click()}>
                 <input type="file" accept="image/*" style={{ display: 'none' }} ref={bannerInputRef} onChange={handleBannerUpload} />
-                <AquaButton onClick={() => bannerInputRef.current?.click()}>{user.banner_url ? 'Change' : 'Add'}</AquaButton>
+                <SimpleImageEditButton>
+                  <span>📷</span> Update Banner
+                </SimpleImageEditButton>
               </BannerActions>
             )}
           </BannerContainer>
@@ -723,29 +867,48 @@ const Profile = () => {
                 {isCurrentUser && isEditMode && (
                   <>
                     <input type="file" accept="image/*,image/gif" style={{ display: 'none' }} ref={fileInputRef} onChange={handlePhotoUpload} />
-                    <ChangePhotoButton onClick={() => fileInputRef.current?.click()}>📷</ChangePhotoButton>
+                    <ImageEditOverlay onClick={() => fileInputRef.current?.click()}>
+                      <span>📷</span>
+                      Change
+                    </ImageEditOverlay>
                   </>
                 )}
               </ProfilePhotoContainer>
               <ProfileDetails>
                 <UsernameWrapper>
-                  {isEditingUsername ? (
-                    <><UsernameInput value={newUsername} onChange={e => setNewUsername(e.target.value)} /><AquaButton onClick={handleSaveUsername}>Save</AquaButton></>
+                  {isEditMode ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', alignItems: 'inherit' }}>
+                      <UsernameInput 
+                        value={newUsername} 
+                        onChange={e => setNewUsername(e.target.value)}
+                        onBlur={handleSaveUsername}
+                        placeholder="Enter username..."
+                      />
+                      <span style={{ fontSize: '11px', color: '#0D9EFF', marginTop: '4px', fontWeight: '600' }}>✓ Auto-saves</span>
+                    </div>
                   ) : (
-                    <><h2>{user.username}</h2>{isCurrentUser && isEditMode && <IconButton onClick={() => setIsEditingUsername(true)}><EditPencil /></IconButton>}</>
+                    <h2>{user.username}</h2>
                   )}
                 </UsernameWrapper>
                 <ProfileStats><StatItem><StatNumber>{posts.length}</StatNumber><StatLabel>Posts</StatLabel></StatItem></ProfileStats>
               </ProfileDetails>
             </ProfileHeader>
 
-              <ProfileBio>
-                {isEditingBio ? (
-                  <><BioTextarea value={newBio} onChange={e => setNewBio(e.target.value)} /><AquaButton onClick={handleSaveBio}>Save</AquaButton></>
-                ) : (
-                  <BioText onClick={() => isEditMode && setIsEditingBio(true)}>{user.bio || 'No bio yet'}{isEditMode && <EditIcon><EditPencil /></EditIcon>}</BioText>
-                )}
-              </ProfileBio>
+            <ProfileBio>
+              {isEditMode ? (
+                <div style={{ position: 'relative', width: '100%' }}>
+                  <BioTextarea 
+                    value={newBio} 
+                    onChange={e => setNewBio(e.target.value)} 
+                    onBlur={handleSaveBio}
+                    placeholder="Tell us about yourself..."
+                  />
+                  <div style={{ textAlign: 'right', fontSize: '10px', color: '#0D9EFF', fontWeight: '600', marginTop: '2px' }}>✓ Bio saved on blur</div>
+                </div>
+              ) : (
+                <BioText>{user.bio || 'No bio yet'}</BioText>
+              )}
+            </ProfileBio>
 
               {/* Profile Music Feature */}
               <ProfileMusicContainer>
@@ -770,11 +933,20 @@ const Profile = () => {
                     </PlayerControls>
                   </MusicPlayer>
                 ) : (
-                  <div style={{ textAlign: 'center' }}>
+                  <div style={{ textAlign: 'center', padding: '15px 0' }}>
                     {isCurrentUser && isEditMode && (
-                      <AquaButton onClick={() => setShowProfileMusicSearch(true)}>
+                      <MinimalEditButton 
+                        onClick={() => setShowProfileMusicSearch(true)}
+                        style={{ 
+                          margin: '0 auto', 
+                          padding: '12px 32px', 
+                          fontSize: '15px',
+                          background: 'rgba(255, 255, 255, 0.9)',
+                          boxShadow: '0 8px 25px rgba(13, 158, 255, 0.2)'
+                        }}
+                      >
                         🎵 Add Profile Song
-                      </AquaButton>
+                      </MinimalEditButton>
                     )}
                   </div>
                 )}
