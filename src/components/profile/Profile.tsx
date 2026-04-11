@@ -1067,8 +1067,8 @@ const Profile = () => {
             </CropperModal>
           )}
         </WindowContent>
-      </WindowFrame>
-    </WindowContainer>
+      </StyledWindowFrame>
+    </StyledWindowContainer>
   );
 };
 
